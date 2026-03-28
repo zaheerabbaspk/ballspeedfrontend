@@ -434,6 +434,8 @@ export class ControllerPage implements OnInit, AfterViewInit {
 
   // --- RTMP & Compositing ---
 
+  private rtmpAudioCtx: AudioContext | null = null;
+
   async toggleRtmp() {
     if (this.isRtmpStreaming()) {
       this.stopRtmp();
@@ -462,16 +464,35 @@ export class ControllerPage implements OnInit, AfterViewInit {
       const canvas = this.composingCanvas.nativeElement;
       const stream = canvas.captureStream(30); // 30fps for professional smoothness
       
-      // 3. Add active camera's audio track if live
+      // 3. Guarantee Audio Track (Facebook REQUIRES Audio)
+      this.rtmpAudioCtx = new AudioContext();
+      const dest = this.rtmpAudioCtx.createMediaStreamDestination();
+      let hasRealAudio = false;
+
       const activeStream = this.activeStream();
       if (activeStream) {
-        activeStream.getAudioTracks().forEach((track: MediaStreamTrack) => {
-          if (track.readyState === 'live') {
-            stream.addTrack(track);
-            console.log('[Controller] Added live audio track');
-          }
-        });
+        const audioTracks = activeStream.getAudioTracks();
+        if (audioTracks.length > 0 && audioTracks[0].readyState === 'live') {
+          const source = this.rtmpAudioCtx.createMediaStreamSource(new MediaStream([audioTracks[0]]));
+          source.connect(dest);
+          hasRealAudio = true;
+          console.log('[Controller] Added REAL live audio track to mix');
+        }
       }
+
+      if (!hasRealAudio) {
+        // Create a silent oscillator to keep FFmpeg and Facebook happy
+        const osc = this.rtmpAudioCtx.createOscillator();
+        const gain = this.rtmpAudioCtx.createGain();
+        gain.gain.value = 0; // Mute
+        osc.connect(gain);
+        gain.connect(dest);
+        osc.start();
+        console.log('[Controller] Added SILENT audio track to mix');
+      }
+
+      // Add the mixed audio track to the canvas video stream
+      dest.stream.getAudioTracks().forEach(track => stream.addTrack(track));
 
       // 4. Verify video track
       const videoTrack = stream.getVideoTracks()[0];
@@ -493,7 +514,19 @@ export class ControllerPage implements OnInit, AfterViewInit {
 
   private stopRtmp() {
     this.isRtmpStreaming.set(false);
-    if (this.compFrameId) cancelAnimationFrame(this.compFrameId);
+    if (this.compFrameId) {
+       clearInterval(this.compFrameId as any);
+       this.compFrameId = null;
+    }
+    
+    // Safely close and dispose the audio context
+    if (this.rtmpAudioCtx) {
+      if (this.rtmpAudioCtx.state !== 'closed') {
+        this.rtmpAudioCtx.close().catch(e => console.warn('AudioContext close error:', e));
+      }
+      this.rtmpAudioCtx = null;
+    }
+
     this.rtmpService.stop();
     console.log('RTMP Push stopped');
   }
@@ -505,23 +538,22 @@ export class ControllerPage implements OnInit, AfterViewInit {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    if (this.compFrameId) {
+      clearInterval(this.compFrameId as any);
+    }
+
     const render = () => {
       // 1. Draw Active Camera
       if (this.activeStream() && this.mainVideo) {
-        ctx.drawImage(this.mainVideo.nativeElement, 0, 0, 1920, 1080);
+        ctx.drawImage(this.mainVideo.nativeElement, 0, 0, 1280, 720);
       } else {
         ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, 1920, 1080);
+        ctx.fillRect(0, 0, 1280, 720);
       }
-
-      // 2. Draw Overlays (Note: Iframes cannot be drawn to canvas directly due to security)
-      // For now, we draw a placeholder if we can't capture the iframe.
-      // In a real scenario, we might use a library that renders HTML to canvas or a server-side compositor.
-      // However, we can try to draw the elements if they were simple HTML.
-      
-      this.compFrameId = requestAnimationFrame(render);
     };
 
-    render();
+    // Use setInterval instead of requestAnimationFrame to prevent background tab CPU sleeping
+    // This strictly pumps 30 frames per second ensuring FFmpeg/Facebook never starves!
+    this.compFrameId = setInterval(render, 1000 / 30) as any;
   }
 }

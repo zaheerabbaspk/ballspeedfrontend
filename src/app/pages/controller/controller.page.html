@@ -120,7 +120,7 @@
       <!-- Central Program View -->
       <section class="flex-1 flex flex-col gap-2 md:gap-6 min-h-0 min-w-0">
         <div class="flex-1 bg-slate-900 rounded-3xl md:rounded-[3rem] overflow-hidden shadow-2xl relative border border-white/5">
-          <video *ngIf="activeCameraId() !== 'MEDIA'" #mainVideo [srcObject]="activeStream()" autoplay playsinline
+          <video *ngIf="activeCameraId() !== 'MEDIA'" #mainVideo [srcObject]="activeStream()" autoplay playsinline muted
             class="w-full h-full object-cover"></video>
 
           <!-- Media Player Layer (Static Fullscreen - Optional, can be handled by scene switch) -->
