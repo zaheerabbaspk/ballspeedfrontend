@@ -63,7 +63,7 @@ export class RtmpService {
         }
       };
 
-      this.recorder.start(1000); // 1s chunks
+      this.recorder.start(250); // 250ms chunks for hyper-smooth, continuous low-latency delivery
       this.isStreaming = true;
       console.log('[RTMP-v3.0] Streaming started seamlessly', sessionId);
     } catch (err) {
