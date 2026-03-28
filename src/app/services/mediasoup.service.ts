@@ -90,6 +90,14 @@ export class MediasoupService {
     });
   }
 
+  joinRoom(roomId: string) {
+    this.socket.emit('join-room', roomId);
+  }
+
+  sendSignal(roomId: string, toPeerId: string | null, type: string, data: any) {
+    this.socket.emit('signal', { roomId, toPeerId, type, data });
+  }
+
   stop() {
     if (this.sendTransport) this.sendTransport.close();
     this.socket.disconnect();
