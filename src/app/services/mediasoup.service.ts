@@ -15,11 +15,16 @@ export class MediasoupService {
 
   constructor(private settings: SettingsService) {
     const backendUrl = this.settings.gatewayUrl();
-    this.socket = io(backendUrl, { transports: ['websocket'] });
+    this.socket = io(backendUrl, { 
+      transports: ['websocket'],
+      reconnection: true,
+      reconnectionAttempts: 20
+    });
 
-    this.socket.on('connect', () => console.log('[Mediasoup] Connected to signaling'));
-    this.socket.on('rtmp-progress', (data) => console.log('[RTMP] Progress:', data.frame));
-    this.socket.on('rtmp-error', (err) => console.error('[RTMP] Server Error:', err));
+    this.socket.on('connect', () => console.log('[Mediasoup-v1.2] Socket connected:', this.socket.id));
+    this.socket.on('disconnect', () => console.warn('[Mediasoup-v1.2] Socket DISCONNECTED'));
+    this.socket.on('rtmp-progress', (data) => console.log('[RTMP] Frame:', data.frame));
+    this.socket.on('rtmp-error', (err) => console.error('[RTMP] Fatal:', err));
   }
 
   async init() {
@@ -30,7 +35,7 @@ export class MediasoupService {
         try {
           this.device = new mediasoupClient.Device();
           await this.device.load({ routerRtpCapabilities: rtpCapabilities });
-          console.log('[Mediasoup] Local device loaded');
+          console.log('[Mediasoup-v1.2] Device loaded');
           resolve();
         } catch (err) {
           console.error('[Mediasoup] Device load error:', err);
@@ -43,17 +48,34 @@ export class MediasoupService {
   async produce(track: MediaStreamTrack, rtmpUrl?: string) {
     if (!this.device) await this.init();
 
-    if (!this.sendTransport) {
+    // HARD GUARD: Recreate transport if closed or failed
+    if (!this.sendTransport || this.sendTransport.closed || this.sendTransport.connectionState === 'failed') {
+      console.log('[Mediasoup-v1.2] Transport stale/closed. Recreating...');
+      if (this.sendTransport) this.sendTransport.close();
       await this.createSendTransport();
     }
 
-    console.log('[Mediasoup] Producing track:', track.kind);
-    const producer = await this.sendTransport!.produce({ 
-      track,
-      appData: { rtmpUrl } 
-    });
+    console.log(`[Mediasoup-v1.2] Producing ${track.kind}. Transport State:`, this.sendTransport?.connectionState);
+    
+    try {
+      const producer = await this.sendTransport!.produce({ 
+        track,
+        appData: { rtmpUrl } 
+      });
 
-    return producer;
+      producer.on('transportclose', () => console.warn(`[Mediasoup] Producer ${producer.id} transport closed`));
+      producer.on('trackended', () => console.warn(`[Mediasoup] Producer ${producer.id} track ended`));
+
+      return producer;
+    } catch (err) {
+      console.error('[Mediasoup] Produce mapping error:', err);
+      // If we hit InvalidStateError, force close and retry once
+      if ((err as any).name === 'InvalidStateError') {
+          this.sendTransport?.close();
+          throw new Error('Transport was in invalid state. Please try again.');
+      }
+      throw err;
+    }
   }
 
   private async createSendTransport() {
@@ -85,6 +107,13 @@ export class MediasoupService {
           });
         });
 
+        this.sendTransport.on('connectionstatechange', (state) => {
+          console.log('[Mediasoup-v1.2] Transport Connection State:', state);
+          if (state === 'failed') {
+            console.error('[Mediasoup] Transport FAILED. Will recreate on next produce.');
+          }
+        });
+
         resolve();
       });
     });
@@ -99,8 +128,11 @@ export class MediasoupService {
   }
 
   stop() {
-    if (this.sendTransport) this.sendTransport.close();
-    this.socket.disconnect();
+    if (this.sendTransport) {
+        this.sendTransport.close();
+        this.sendTransport = null;
+    }
+    // We don't disconnect socket here as it's shared for signaling
   }
 }
 

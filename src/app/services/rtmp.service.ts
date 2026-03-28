@@ -6,9 +6,10 @@ import { MediasoupService } from './mediasoup.service';
 })
 export class RtmpService {
   private isStreaming = false;
+  private isStarting = false;
 
   constructor(private mediasoup: MediasoupService) {
-    console.log('[RTMP-WebRTC] Service v1.1 READY');
+    console.log('[RTMP-WebRTC] Service v1.2 READY');
   }
 
   /**
@@ -16,8 +17,13 @@ export class RtmpService {
    */
   async start(stream: MediaStream, rtmpUrl: string): Promise<void> {
     if (this.isStreaming) throw new Error('Already streaming');
+    if (this.isStarting) {
+      console.warn('[RTMP-WebRTC] Start already in progress. Ignoring.');
+      return;
+    }
 
-    console.log('[RTMP-WebRTC] Starting ingest for:', rtmpUrl);
+    this.isStarting = true;
+    console.log('[RTMP-WebRTC] Starting ingest for:', rtmpUrl.split('?')[0]);
 
     try {
       // 1. Produce all tracks (Video + Audio)
@@ -32,7 +38,10 @@ export class RtmpService {
       console.log(`[RTMP-WebRTC] ${tracks.length} WebRTC Producers active`);
     } catch (err) {
       console.error('[RTMP-WebRTC] Failed to start:', err);
+      this.stop(); // Cleanup on failure
       throw err;
+    } finally {
+      this.isStarting = false;
     }
   }
 
@@ -40,6 +49,7 @@ export class RtmpService {
     console.log('[RTMP-WebRTC] Stopping...');
     this.mediasoup.stop();
     this.isStreaming = false;
+    this.isStarting = false;
   }
 
   getIsStreaming(): boolean {
