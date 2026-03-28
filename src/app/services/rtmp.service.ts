@@ -1,44 +1,68 @@
 import { Injectable } from '@angular/core';
-import { MediasoupService } from './mediasoup.service';
+import { SettingsService } from './settings.service';
+import { io, Socket } from 'socket.io-client';
 
 @Injectable({
   providedIn: 'root'
 })
 export class RtmpService {
+  private socket: Socket;
+  private recorder: MediaRecorder | null = null;
   private isStreaming = false;
   private isStarting = false;
 
-  constructor(private mediasoup: MediasoupService) {
-    console.log('[RTMP-WebRTC] Service v1.2 READY');
+  constructor(private settings: SettingsService) {
+    const backendUrl = this.settings.gatewayUrl();
+    this.socket = io(backendUrl, { 
+       transports: ['websocket'],
+       reconnection: true
+    });
+
+    this.socket.on('rtmp-progress', (data) => console.log('[RTMP] Frame:', data.frame));
+    this.socket.on('rtmp-error', (err) => {
+        console.error('[RTMP] Fatal:', err);
+        this.stop();
+    });
   }
 
   /**
-   * Start RTMP streaming via WebRTC (Mediasoup)
+   * Start RTMP streaming via Binary WebSocket v3.0
    */
   async start(stream: MediaStream, rtmpUrl: string): Promise<void> {
-    if (this.isStreaming) throw new Error('Already streaming');
-    if (this.isStarting) {
-      console.warn('[RTMP-WebRTC] Start already in progress. Ignoring.');
-      return;
-    }
+    if (this.isStreaming || this.isStarting) return;
 
     this.isStarting = true;
-    console.log('[RTMP-WebRTC] Starting ingest for:', rtmpUrl.split('?')[0]);
+    console.log('[RTMP-v3.0] Initializing ingest for:', rtmpUrl.split('?')[0]);
 
     try {
-      // 1. Produce all tracks (Video + Audio)
-      const tracks = stream.getTracks();
-      if (tracks.length === 0) throw new Error('No tracks found for streaming');
+      // 1. Notify backend to start FFmpeg
+      this.socket.emit('start-rtmp', { rtmpUrl });
 
-      for (const track of tracks) {
-        await this.mediasoup.produce(track, rtmpUrl);
+      // 2. Start MediaRecorder
+      const options = {
+        mimeType: 'video/webm;codecs=vp8,opus',
+        videoBitsPerSecond: 2500000, // 2.5 Mbps
+        audioBitsPerSecond: 128000
+      };
+
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+          options.mimeType = 'video/webm';
       }
+
+      this.recorder = new MediaRecorder(stream, options);
       
+      this.recorder.ondataavailable = (event) => {
+        if (event.data.size > 0 && this.isStreaming) {
+          this.socket.emit('video-chunk', event.data);
+        }
+      };
+
+      this.recorder.start(1000); // 1s chunks
       this.isStreaming = true;
-      console.log(`[RTMP-WebRTC] ${tracks.length} WebRTC Producers active`);
+      console.log('[RTMP-v3.0] Streaming started');
     } catch (err) {
-      console.error('[RTMP-WebRTC] Failed to start:', err);
-      this.stop(); // Cleanup on failure
+      console.error('[RTMP-v3.0] Failed to start:', err);
+      this.stop();
       throw err;
     } finally {
       this.isStarting = false;
@@ -46,8 +70,12 @@ export class RtmpService {
   }
 
   stop() {
-    console.log('[RTMP-WebRTC] Stopping...');
-    this.mediasoup.stop();
+    console.log('[RTMP-v3.0] Stopping...');
+    if (this.recorder && this.recorder.state !== 'inactive') {
+      try { this.recorder.stop(); } catch (e) {}
+    }
+    this.recorder = null;
+    this.socket.emit('stop-rtmp');
     this.isStreaming = false;
     this.isStarting = false;
   }
