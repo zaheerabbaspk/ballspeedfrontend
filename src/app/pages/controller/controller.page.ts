@@ -12,8 +12,14 @@ import {
   videocam, tv, shareSocial, settings, radio, timeOutline, add,
   optionsOutline, linkOutline, gridOutline, cameraOutline, browsersOutline, settingsOutline,
   radioOutline, layersOutline, closeOutline, saveOutline, globeOutline,
-  lockClosedOutline, lockOpenOutline, videocamOutline, contractOutline, trashOutline
+  lockClosedOutline, lockOpenOutline, videocamOutline, contractOutline, trashOutline, syncOutline
 } from 'ionicons/icons';
+
+interface ConnectedCamera {
+  id: string;
+  stream: MediaStream;
+  rotation: number;
+}
 
 @Component({
   selector: 'app-controller',
@@ -26,9 +32,17 @@ export class ControllerPage implements OnInit, AfterViewInit {
   @ViewChild('mainVideo') mainVideo!: ElementRef<HTMLVideoElement>;
   @ViewChild('overlayContainer') overlayContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('composingCanvas') composingCanvas!: ElementRef<HTMLCanvasElement>;
-  cameras = signal<any[]>([]); // { id, stream }
+  cameras = signal<ConnectedCamera[]>([]); // { id, stream, rotation }
   activeCameraId = signal<string | null>(null);
   activeStream = signal<MediaStream | null>(null);
+  activeRotationStyle = computed(() => {
+    if (this.activeCameraId() === 'MEDIA') return '';
+    const cam = this.cameras().find(c => c.id === this.activeCameraId());
+    const rot = cam?.rotation || 0;
+    const scale = (rot === 90 || rot === 270) ? 1.777 : 1;
+    return `rotate(${rot}deg) scale(${scale})`;
+  });
+
   previewCameraId = signal<string | null>(null);
   previewStream = signal<MediaStream | null>(null);
 
@@ -112,14 +126,14 @@ export class ControllerPage implements OnInit, AfterViewInit {
 
     this.streamingService.remoteStream$.subscribe(({ peerId, stream }: { peerId: string, stream: MediaStream }) => {
       console.log('Received remote stream from camera:', peerId);
+      const newCam: ConnectedCamera = { id: peerId, stream, rotation: 0 };
       this.cameras.update(prev => {
         const exists = prev.find(c => c.id === peerId);
         if (exists) {
-          // Update stream if peerId exists
           exists.stream = stream;
           return [...prev];
         }
-        return [...prev, { id: peerId, stream }];
+        return [...prev, newCam];
       });
 
       if (!this.activeCameraId()) {
@@ -127,13 +141,11 @@ export class ControllerPage implements OnInit, AfterViewInit {
       }
     });
 
-    // Start Clock
     setInterval(() => {
       const now = new Date();
       this.currentTime.set(now.toLocaleTimeString([], { hour12: false }));
     }, 1000);
 
-    // Diagnostic Subscriptions
     this.streamingService['signaling'].status$.subscribe(status => {
       this.signalingStatus.set(status);
     });
@@ -142,13 +154,11 @@ export class ControllerPage implements OnInit, AfterViewInit {
       this.peerConnectionStates.update(prev => ({ ...prev, [peerId]: state }));
     });
 
-    // Initial scale calculation
     setTimeout(() => this.calculateFitScale(), 500);
   }
 
   ngAfterViewInit() {
     this.calculateFitScale();
-    // Auto-center scoreboard on first load to ensure it fits the current canvas
     setTimeout(() => this.centerOverlay('SCOREBOARD'), 1000);
   }
 
@@ -161,7 +171,7 @@ export class ControllerPage implements OnInit, AfterViewInit {
     if (this.overlayContainer) {
       const containerWidth = this.overlayContainer.nativeElement.clientWidth;
       const containerHeight = this.overlayContainer.nativeElement.clientHeight;
-      const canvasWidth = 1280; // Force 720p for lag-free performance
+      const canvasWidth = 1280;
       const canvasHeight = 720;
 
       if (containerWidth > 0 && containerHeight > 0) {
@@ -240,7 +250,7 @@ export class ControllerPage implements OnInit, AfterViewInit {
 
   private onOverlayPointerMove(event: PointerEvent) {
     if (this.currentMode === 'NONE') return;
-    event.preventDefault(); // Prevent accidental scroll/zoom
+    event.preventDefault();
     this.activePointers.set(event.pointerId, event);
 
     if (this.currentMode === 'PINCHING' && this.activePointers.size === 2) {
@@ -275,7 +285,6 @@ export class ControllerPage implements OnInit, AfterViewInit {
         this.studioSettings.mediaTop.set(this.startOverlayPos.y + dy);
       }
     } else if (this.currentMode === 'RESIZING') {
-      // For resizing width/height, we also account for the current scale
       const currentScale = this.startOverlayPos.scale;
       const normalizedDx = dx / currentScale;
       const normalizedDy = dy / currentScale;
@@ -356,6 +365,17 @@ export class ControllerPage implements OnInit, AfterViewInit {
     }
     
     this.switchMedia();
+  }
+
+  rotateCamera(cameraId: string, event: Event) {
+    event.stopPropagation();
+    this.cameras.update(cams => 
+      cams.map(c => 
+        c.id === cameraId 
+          ? { ...c, rotation: ((c.rotation || 0) + 90) % 360 } 
+          : c
+      )
+    );
   }
 
   takeLive(targetId?: string) {
@@ -545,7 +565,24 @@ export class ControllerPage implements OnInit, AfterViewInit {
     const render = () => {
       // 1. Draw Active Camera
       if (this.activeStream() && this.mainVideo) {
-        ctx.drawImage(this.mainVideo.nativeElement, 0, 0, 1280, 720);
+        const id = this.activeCameraId();
+        const cam = this.cameras().find(c => c.id === id);
+        const rotation = cam?.rotation || 0;
+
+        ctx.save();
+        if (rotation === 90 || rotation === 270) {
+          ctx.translate(640, 360);
+          ctx.rotate(rotation * Math.PI / 180);
+          ctx.scale(1.777, 1.777); // 16:9 expansion
+          ctx.drawImage(this.mainVideo.nativeElement, -640, -360, 1280, 720);
+        } else if (rotation === 180) {
+          ctx.translate(640, 360);
+          ctx.rotate(Math.PI);
+          ctx.drawImage(this.mainVideo.nativeElement, -640, -360, 1280, 720);
+        } else {
+          ctx.drawImage(this.mainVideo.nativeElement, 0, 0, 1280, 720);
+        }
+        ctx.restore();
       } else {
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, 1280, 720);

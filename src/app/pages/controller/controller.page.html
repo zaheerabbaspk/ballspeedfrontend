@@ -61,18 +61,25 @@
               [class.border-rose-600]="activeCameraId() === cam.id"
               [class.border-emerald-500]="previewCameraId() === cam.id && activeCameraId() !== cam.id"
               [class.border-transparent]="activeCameraId() !== cam.id && previewCameraId() !== cam.id">
-              <div class="aspect-video bg-slate-900 overflow-hidden relative">
+              <div class="aspect-video bg-slate-900 overflow-hidden relative flex items-center justify-center">
                 <video [srcObject]="cam.stream" autoplay playsinline muted
-                  class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"></video>
+                  class="w-full h-full object-cover transition-transform duration-500"
+                  [style.transform]="'rotate(' + (cam.rotation || 0) + 'deg) scale(' + ((cam.rotation === 90 || cam.rotation === 270) ? 1.777 : 1) + ')'"></video>
   
-                <!-- Tally / Status Overlay -->
+                <!-- Live Tag -->
                 <div *ngIf="activeCameraId() === cam.id"
-                  class="absolute top-1 right-1 md:top-2 md:right-2 bg-rose-600 text-white text-[6px] md:text-[7px] font-black px-1 md:px-1.5 py-0.5 rounded-md uppercase tracking-tighter flex items-center gap-1 shadow-lg">
+                  class="absolute top-1 right-8 md:top-2 md:right-10 bg-rose-600 text-white text-[6px] md:text-[7px] font-black px-1 md:px-1.5 py-0.5 rounded-md uppercase tracking-tighter flex items-center gap-1 shadow-lg pointer-events-none">
                   <div class="w-1 h-1 bg-white rounded-full animate-pulse"></div>
                   Live
                 </div>
+
+                <!-- Rotate Button -->
+                <button (click)="rotateCamera(cam.id, $event)"
+                  class="absolute top-1 right-1 md:top-2 md:right-2 bg-slate-900/80 hover:bg-blue-600 text-white p-1 md:p-1.5 rounded-md transition-all shadow-lg pointer-events-auto z-20 backdrop-blur-sm active:scale-95">
+                  <ion-icon name="sync-outline" class="text-[10px] md:text-sm"></ion-icon>
+                </button>
   
-                <div class="absolute top-1 left-1 md:top-2 md:left-2 flex gap-1">
+                <div class="absolute top-1 left-1 md:top-2 md:left-2 flex gap-1 pointer-events-none">
                   <ion-icon name="radio" class="text-[8px] md:text-[10px] text-emerald-500"></ion-icon>
                 </div>
               </div>
@@ -103,7 +110,7 @@
               </div>
               <!-- Delete Action -->
               <button (click)="removeMedia(); $event.stopPropagation()"
-                class="absolute top-1 right-1 md:top-2 md:right-2 bg-slate-950/80 hover:bg-rose-600 p-1 md:p-1.5 rounded-lg text-white/40 hover:text-white transition-all shadow-xl backdrop-blur-sm">
+                class="absolute top-1 right-1 md:top-2 md:right-2 bg-slate-950/80 hover:bg-rose-600 p-1 md:p-1.5 rounded-lg text-white/40 hover:text-white transition-all shadow-xl backdrop-blur-sm z-20">
                 <ion-icon name="close-outline"></ion-icon>
               </button>
             </div>
@@ -119,9 +126,10 @@
  
       <!-- Central Program View -->
       <section class="flex-1 flex flex-col gap-2 md:gap-6 min-h-0 min-w-0">
-        <div class="flex-1 bg-slate-900 rounded-3xl md:rounded-[3rem] overflow-hidden shadow-2xl relative border border-white/5">
+        <div class="flex-1 bg-slate-900 rounded-3xl md:rounded-[3rem] overflow-hidden shadow-2xl relative border border-white/5 flex items-center justify-center">
           <video *ngIf="activeCameraId() !== 'MEDIA'" #mainVideo [srcObject]="activeStream()" autoplay playsinline muted
-            class="w-full h-full object-cover"></video>
+            class="w-full h-full object-cover transition-transform duration-500"
+            [style.transform]="activeRotationStyle()"></video>
 
           <!-- Media Player Layer (Static Fullscreen - Optional, can be handled by scene switch) -->
           <!-- We move this logic to the dynamic overlay container below for resizing/moving -->
