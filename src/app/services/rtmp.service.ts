@@ -7,7 +7,9 @@ import { MediasoupService } from './mediasoup.service';
 export class RtmpService {
   private isStreaming = false;
 
-  constructor(private mediasoup: MediasoupService) {}
+  constructor(private mediasoup: MediasoupService) {
+    console.log('[RTMP-WebRTC] Service v1.1 READY');
+  }
 
   /**
    * Start RTMP streaming via WebRTC (Mediasoup)
