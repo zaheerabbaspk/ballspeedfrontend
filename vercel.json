@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "name": "ballspeedfrontend",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "www" }
+    }
+  ],
+  "rewrites": [
+    { "source": "/assets/(.*)", "destination": "/assets/$1" },
+    { "source": "/(.*).js", "destination": "/$1.js" },
+    { "source": "/(.*).css", "destination": "/$1.css" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
