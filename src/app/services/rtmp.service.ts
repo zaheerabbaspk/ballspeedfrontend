@@ -14,16 +14,16 @@ export class RtmpService {
 
   constructor(private settings: SettingsService) {
     const backendUrl = this.settings.gatewayUrl();
-    this.socket = io(backendUrl, { 
-       transports: ['websocket'],
-       reconnection: true
+    this.socket = io(backendUrl, {
+      transports: ['websocket'],
+      reconnection: true
     });
 
     this.socket.on('rtmp-progress', (data) => console.log('[RTMP] Frame:', data.frame));
     this.socket.on('rtmp-error', (err) => {
-        console.error('[RTMP] Fatal:', err);
-        // Do not auto-reconnect infinite loops on fatal errors, just stop.
-        this.stop();
+      console.error('[RTMP] Fatal:', err);
+      // Do not auto-reconnect infinite loops on fatal errors, just stop.
+      this.stop();
     });
   }
 
@@ -51,11 +51,11 @@ export class RtmpService {
       };
 
       if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-          options.mimeType = 'video/webm';
+        options.mimeType = 'video/webm';
       }
 
       this.recorder = new MediaRecorder(stream, options);
-      
+
       this.recorder.ondataavailable = (event) => {
         // Strictly only send chunks if the active session hasn't changed!
         if (event.data.size > 0 && this.isStreaming && this.currentSessionId === sessionId) {
@@ -63,7 +63,7 @@ export class RtmpService {
         }
       };
 
-      this.recorder.start(250); // 250ms chunks for hyper-smooth, continuous low-latency delivery
+      this.recorder.start(40); // 200ms chunks for hyper-smooth, continuous low-latency delivery
       this.isStreaming = true;
       console.log('[RTMP-v3.0] Streaming started seamlessly', sessionId);
     } catch (err) {
@@ -77,20 +77,20 @@ export class RtmpService {
 
   stop() {
     console.log('[RTMP-v3.0] Stopping active session:', this.currentSessionId);
-    
+
     // Invalidate session immediately to prevent old floating chunks from being emitted by ondataavailable
-    this.currentSessionId = null; 
+    this.currentSessionId = null;
 
     if (this.recorder) {
-      try { 
+      try {
         if (this.recorder.state !== 'inactive') {
-           this.recorder.stop(); 
+          this.recorder.stop();
         }
-      } catch (e) {}
+      } catch (e) { }
       this.recorder.ondataavailable = null; // Unbind events
       this.recorder = null;
     }
-    
+
     this.socket.emit('stop-rtmp');
     this.isStreaming = false;
     this.isStarting = false;
