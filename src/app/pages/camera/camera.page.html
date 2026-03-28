@@ -134,6 +134,7 @@
         <div class="status-indicator">
           <ion-icon name="radio-button-on" [class.text-red-500]="signalingStatus() === 'disconnected'"></ion-icon>
           <span [class.text-green-500]="signalingStatus() === 'connected'">{{ signalingStatus() }}</span>
+          <span [class.text-blue-500]="rtcStatus() === 'connected'">{{ rtcStatus() }}</span>
         </div>
       </div>
     </div>

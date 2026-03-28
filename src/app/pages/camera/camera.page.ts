@@ -18,6 +18,7 @@ export class CameraPage implements OnInit {
   isStreaming = false;
   status = 'Disconnected';
   signalingStatus = signal<string>('initializing');
+  rtcStatus = signal<string>('new');
   isFullscreen = signal<boolean>(false);
   errorName = signal<string | null>(null);
   devices = signal<MediaDeviceInfo[]>([]);
@@ -36,7 +37,11 @@ export class CameraPage implements OnInit {
     this.roomId = this.route.snapshot.paramMap.get('id');
     this.status = `Ready (Room: ${this.roomId})`;
 
+    this.streamingService['signaling'].status$.subscribe(s => this.signalingStatus.set(s));
+    this.streamingService.connectionState$.subscribe(s => this.rtcStatus.set(s.state));
+
     // Initially populate devices
+
     await this.logDevices();
   }
 
