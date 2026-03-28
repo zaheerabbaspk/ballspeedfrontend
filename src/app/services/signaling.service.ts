@@ -66,8 +66,6 @@ export class SignalingService {
   }
 
   async sendSignal(toPeerId: string, type: string, data: any) {
-    // Try Local Socket first if available (via MediasoupService's socket)
-    // For now, we'll stick to Supabase but add better error handling
     if (!this.supabase) return;
     try {
       const { error } = await this.supabase

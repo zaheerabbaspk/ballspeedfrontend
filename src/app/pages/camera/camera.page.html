@@ -131,12 +131,10 @@
     <!-- Diagnostics Overlay -->
     <div *ngIf="!isFullscreen()" class="mt-4 bg-slate-900/40 p-3 rounded-xl border border-white/5 text-[8px] font-mono opacity-60">
       <div class="flex justify-between items-center mb-1">
-        <span>Signaling:</span>
-        <span [class.text-emerald-500]="signalingStatus() === 'SUBSCRIBED'">{{ signalingStatus() }}</span>
-      </div>
-      <div class="flex justify-between items-center">
-        <span>P2P Status:</span>
-        <span [class.text-blue-500]="rtcStatus() === 'connected'">{{ rtcStatus() }}</span>
+        <div class="status-indicator">
+          <ion-icon name="radio-button-on" [class.text-red-500]="signalingStatus() === 'disconnected'"></ion-icon>
+          <span [class.text-green-500]="signalingStatus() === 'connected'">{{ signalingStatus() }}</span>
+        </div>
       </div>
     </div>
 

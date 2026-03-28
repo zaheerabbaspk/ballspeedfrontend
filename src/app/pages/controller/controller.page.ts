@@ -3,7 +3,6 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonBadge, IonGrid, IonRow, IonCol, ModalController } from '@ionic/angular/standalone';
 import { StreamingService } from '../../services/streaming.service';
-import { MediasoupService } from '../../services/mediasoup.service';
 import { RtmpService } from '../../services/rtmp.service';
 import { SettingsService } from '../../services/settings.service';
 import { SettingsPage } from '../settings/settings.page';
@@ -86,7 +85,6 @@ export class ControllerPage implements OnInit, AfterViewInit {
 
   constructor(
     private streamingService: StreamingService,
-    private mediasoup: MediasoupService,
     private rtmpService: RtmpService,
     private route: ActivatedRoute,
     public studioSettings: SettingsService,
@@ -111,46 +109,12 @@ export class ControllerPage implements OnInit, AfterViewInit {
     this.currentRoomId.set(roomId);
     this.shareUrl.set(`${window.location.origin}/#/room/${roomId}/camera`);
     await this.streamingService.init(roomId, 'CONTROLLER');
-    
-    // Initialize Mediasoup for RTMP gateway
-    try {
-      await this.mediasoup.init();
-      console.log('Mediasoup gateway ready');
-    } catch (err) {
-      console.warn('Mediasoup gateway not available:', err);
-    }
-
-    this.streamingService.remoteStream$.subscribe(({ peerId, stream }: { peerId: string, stream: MediaStream }) => {
-      console.log('Received remote stream from camera:', peerId);
-      this.cameras.update(prev => {
-        const exists = prev.find(c => c.id === peerId);
-        if (exists) {
-          // Update stream if peerId exists
-          exists.stream = stream;
-          return [...prev];
-        }
-        return [...prev, { id: peerId, stream }];
-      });
-
-      if (!this.activeCameraId()) {
-        this.switchCamera(peerId);
-      }
-    });
 
     // Start Clock
     setInterval(() => {
       const now = new Date();
       this.currentTime.set(now.toLocaleTimeString([], { hour12: false }));
     }, 1000);
-
-    // Diagnostic Subscriptions
-    this.streamingService['signaling'].status$.subscribe(status => {
-      this.signalingStatus.set(status);
-    });
-
-    this.streamingService.connectionState$.subscribe(({ peerId, state }) => {
-      this.peerConnectionStates.update(prev => ({ ...prev, [peerId]: state }));
-    });
 
     // Initial scale calculation
     setTimeout(() => this.calculateFitScale(), 500);
@@ -426,19 +390,6 @@ export class ControllerPage implements OnInit, AfterViewInit {
       alert('Invite link copied! Open this on your mobile device.');
     } catch (err) {
       console.error('Copy failed:', err);
-    }
-  }
-
-  async testSignaling() {
-    console.log('[Test] Sending dummy signal to self...');
-    const peerId = this.streamingService.getPeerId();
-    await this.streamingService['signaling'].sendSignal(peerId, 'test-ping', { time: Date.now() });
-  }
-
-  async retrySignaling() {
-    const roomId = this.route.snapshot.paramMap.get('id');
-    if (roomId) {
-      await this.streamingService.init(roomId, 'CONTROLLER');
     }
   }
 
