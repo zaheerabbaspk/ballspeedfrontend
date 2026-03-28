@@ -1,0 +1,7 @@
+{
+  "name": "ballspeedfrontend",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
