@@ -143,7 +143,21 @@ export class CameraPage implements OnInit {
     }
   }
 
-  toggleFullscreen(show: boolean) {
-    this.isFullscreen.set(show);
+  stopStreaming() {
+    this.isStreaming = false;
+    this.status = 'Ready';
+    this.errorName.set(null);
+    
+    // Release the camera hardware
+    if (this.localVideo && this.localVideo.nativeElement.srcObject) {
+      const stream = this.localVideo.nativeElement.srcObject as MediaStream;
+      stream.getTracks().forEach(t => t.stop());
+      this.localVideo.nativeElement.srcObject = null;
+    }
+
+    // Completely terminate WebRTC peer connections
+    if (typeof this.streamingService['stopProducing'] === 'function') {
+      (this.streamingService as any).stopProducing();
+    }
   }
 }

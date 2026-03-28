@@ -50,14 +50,14 @@
     </header>
 
     <!-- Main Content Area -->
-    <main class="flex-1 flex flex-col md:flex-row gap-4 md:gap-8 min-h-0 overflow-hidden">
+    <main class="flex-1 flex flex-col md:flex-row landscape:flex-row gap-2 md:gap-8 min-h-0 overflow-hidden">
 
       <!-- Sidebar/Switcher: Scenes -->
-      <aside class="w-full md:w-64 max-h-[30vh] md:max-h-full flex flex-col gap-4">
-        <div class="flex-1 overflow-x-auto md:overflow-y-auto scrollbar-hide">
-          <div class="flex flex-row md:flex-col gap-3 md:gap-4 pb-2 md:pb-0">
+      <aside class="w-full landscape:w-[150px] md:w-64 max-h-[25vh] landscape:max-h-full md:max-h-full flex flex-col gap-2 md:gap-4">
+        <div class="flex-1 overflow-x-auto overflow-y-hidden landscape:overflow-y-auto landscape:overflow-x-hidden md:overflow-y-auto md:overflow-x-hidden scrollbar-hide">
+          <div class="flex flex-row landscape:flex-col md:flex-col gap-2 md:gap-4 pb-1 md:pb-0 landscape:pb-0">
             <div *ngFor="let cam of cameras(); let i = index" (click)="switchCamera(cam.id)"
-              class="group relative rounded-xl md:rounded-2xl overflow-hidden cursor-pointer transition-all border-2 md:border-4 shadow-2xl flex-shrink-0 w-32 md:w-full"
+              class="group relative rounded-xl md:rounded-2xl overflow-hidden cursor-pointer transition-all border-2 md:border-4 shadow-2xl flex-shrink-0 w-28 landscape:w-full md:w-full"
               [class.border-rose-600]="activeCameraId() === cam.id"
               [class.border-emerald-500]="previewCameraId() === cam.id && activeCameraId() !== cam.id"
               [class.border-transparent]="activeCameraId() !== cam.id && previewCameraId() !== cam.id">
@@ -77,9 +77,9 @@
                 </div>
               </div>
               <div
-                class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-2 md:p-3 pointer-events-none">
-                <span class="text-[8px] md:text-[10px] font-bold uppercase tracking-widest opacity-80 flex items-center gap-1 md:gap-2">
-                  <span class="w-1 h-2 md:h-3 bg-blue-600 rounded-full"></span>
+                class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-1.5 md:p-3 pointer-events-none">
+                <span class="text-[7px] md:text-[10px] font-bold uppercase tracking-widest opacity-80 flex items-center gap-1 md:gap-2">
+                  <span class="w-1 h-1.5 md:h-3 bg-blue-600 rounded-full"></span>
                   Scene 0{{ i + 1 }}
                 </span>
                 <span class="hidden md:block text-[8px] font-mono text-white/40 uppercase mt-0.5 ml-3">{{ cam.id.substring(0,8) }}</span>
@@ -88,7 +88,7 @@
   
             <!-- Media Source Scene -->
             <div *ngIf="studioSettings.mediaUrl()" (click)="switchMedia()"
-              class="group relative rounded-xl md:rounded-2xl overflow-hidden cursor-pointer transition-all border-2 md:border-4 shadow-2xl flex-shrink-0 w-32 md:w-full"
+              class="group relative rounded-xl md:rounded-2xl overflow-hidden cursor-pointer transition-all border-2 md:border-4 shadow-2xl flex-shrink-0 w-28 landscape:w-full md:w-full"
               [class.border-rose-600]="activeCameraId() === 'MEDIA'"
               [class.border-transparent]="activeCameraId() !== 'MEDIA'">
               <div class="aspect-video bg-slate-900 flex flex-col items-center justify-center p-2 md:p-4">
@@ -109,14 +109,14 @@
             </div>
           </div>
         </div>
-
+ 
         <button
-          class="hidden md:flex w-full bg-slate-900 border border-white/5 py-4 rounded-2xl items-center justify-center gap-2 text-xs font-bold text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
-          <ion-icon name="add" class="text-lg"></ion-icon>
+          class="hidden landscape:flex md:flex w-full bg-slate-900 border border-white/5 py-2 md:py-4 rounded-xl md:rounded-2xl items-center justify-center gap-2 text-[10px] md:text-xs font-bold text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
+          <ion-icon name="add" class="text-sm md:text-lg"></ion-icon>
           Add Scene
         </button>
       </aside>
-
+ 
       <!-- Central Program View -->
       <section class="flex-1 flex flex-col gap-2 md:gap-6 min-h-0 min-w-0">
         <div class="flex-1 bg-slate-900 rounded-3xl md:rounded-[3rem] overflow-hidden shadow-2xl relative border border-white/5">

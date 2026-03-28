@@ -64,7 +64,7 @@ export class StreamingService {
     this.signaling.message$.subscribe(handleSignal);
   }
 
-  /**
+    /**
    * Called by the CAMERA to start getting local media and send offer
    */
   async startProducing(targetPeerId: string = 'CONTROLLER', deviceId?: string) {
@@ -73,11 +73,11 @@ export class StreamingService {
       await this.requestNativePermissions();
 
       console.log('[StreamingService] Requesting local camera/mic...', deviceId ? `(Device: ${deviceId})` : '');
+      
+      // Let the browser handle natural orientation and rotation metadata natively!
       this.localStream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           deviceId: deviceId ? { exact: deviceId } : undefined,
-          width: { ideal: 1280 }, 
-          height: { ideal: 720 }, 
           frameRate: { ideal: 30 },
           facingMode: deviceId ? undefined : { ideal: 'environment' }
         }, 
@@ -103,6 +103,17 @@ export class StreamingService {
     }
   }
 
+  stopProducing() {
+    console.log('[StreamingService] Stopping local stream and destroying peers');
+    if (this.localStream) {
+      this.localStream.getTracks().forEach(track => track.stop());
+      this.localStream = null;
+    }
+    
+    this.peerConnections.forEach((pc) => pc.close());
+    this.peerConnections.clear();
+  }
+
   private async handleOffer(from: string, offer: RTCSessionDescriptionInit) {
     console.log('[StreamingService] Handling offer from:', from);
     const pc = this.createPeer(from);
@@ -124,8 +135,10 @@ export class StreamingService {
   private async handleAnswer(from: string, answer: RTCSessionDescriptionInit) {
     console.log('[StreamingService] Handling answer from:', from);
     const pc = this.peerConnections.get(from);
-    if (pc) {
+    if (pc && pc.signalingState === 'have-local-offer') {
       await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    } else {
+      console.warn(`[StreamingService] Ignored answer from ${from} because state is ${pc?.signalingState}`);
     }
   }
 
