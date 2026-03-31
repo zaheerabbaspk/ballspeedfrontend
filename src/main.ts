@@ -11,10 +11,15 @@ if (environment.production) {
   enableProdMode();
 }
 
+import { provideHttpClient } from '@angular/common/http';
+import { provideAnimations } from '@angular/platform-browser/animations';
+
 bootstrapApplication(AppComponent, {
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     provideIonicAngular(),
+    provideHttpClient(),
+    provideAnimations(),
     provideRouter(routes, withPreloading(PreloadAllModules), withHashLocation()),
   ],
 });

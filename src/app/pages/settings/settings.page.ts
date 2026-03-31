@@ -43,7 +43,7 @@ export class SettingsPage implements OnInit {
   mediaUrl = '';
 
   constructor(
-    private settingsService: SettingsService,
+    public settingsService: SettingsService,
     private modalCtrl: ModalController
   ) {
     addIcons({ 

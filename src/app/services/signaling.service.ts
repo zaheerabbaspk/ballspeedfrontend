@@ -47,11 +47,11 @@ export class SignalingService {
     // Listen for new rows in the 'signals' table for this room
     this.supabase
       .channel('public:signals')
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
         table: 'signals',
-        filter: `to_peer_id=eq.${this.peerId}` 
+        filter: `to_peer_id=eq.${this.peerId}`
       }, (payload: any) => {
         const newMsg = payload.new as any;
         console.log('[Signaling] INCOMING:', newMsg.type, 'from:', newMsg.from_peer_id);
@@ -77,7 +77,7 @@ export class SignalingService {
           type: type,
           data: data
         });
-      
+
       if (error) throw error;
     } catch (error: any) {
       console.warn('[Signaling] Supabase failed, check internet or project status:', error.message);

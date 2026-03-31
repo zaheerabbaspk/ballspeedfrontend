@@ -1,376 +1,341 @@
-<ion-content [fullscreen]="true" class="text-white font-sans overflow-hidden">
+<ion-content [fullscreen]="true" class="bg-[#1c1d22] text-[#e0e0e0] font-sans overflow-hidden select-none">
 
-  <!-- Main Container -->
-  <div class="h-full min-h-full flex flex-col p-2 md:p-6 gap-2 md:gap-6 relative overflow-hidden">
+    <div class="h-screen flex flex-col overflow-hidden bg-[#1c1d22]">
 
-    <!-- Top Header -->
-    <header class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <h1 class="text-lg md:text-xl font-black italic tracking-tighter">obs<span class="text-white/60 font-medium">studio</span>
-        </h1>
-      </div>
-
-      <div class="flex items-center gap-2 md:gap-8">
-
-        <div (click)="copyInviteLink()"
-          class="hidden sm:flex items-center gap-2 bg-slate-900/50 border border-white/5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl cursor-pointer hover:bg-slate-800 transition-all border-dashed">
-          <span class="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-blue-400">Invite:</span>
-          <span class="text-[10px] md:text-xs font-mono font-bold">{{ currentRoomId() }}</span>
-          <ion-icon name="share-social" class="ml-1 md:ml-2 text-white/40"></ion-icon>
-        </div>
-
-        <div class="hidden lg:flex items-center gap-2 text-xs font-medium text-slate-400">
-          <ion-icon name="radio" class="text-emerald-500 text-base"></ion-icon>
-          <span class="text-emerald-500">Excellent</span>
-          <span class="opacity-20 mx-1">|</span>
-          <ion-icon name="time-outline" class="text-white/40 mb-0.5 text-base"></ion-icon>
-          <span class="text-white/40">Studio Time: <span class="text-white">{{ currentTime() }}</span></span>
-        </div>
-
-        <!-- Layout Mode Toggle -->
-        <button (click)="toggleOverlayLock()"
-          class="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-xl transition-all font-black uppercase tracking-widest text-[8px] md:text-[10px] shadow-lg active:scale-95"
-          [class.bg-rose-600]="!isOverlayLocked()" [class.bg-slate-900]="isOverlayLocked()"
-          [class.text-white]="!isOverlayLocked()" [class.text-slate-400]="isOverlayLocked()">
-          <ion-icon [name]="isOverlayLocked() ? 'lock-closed-outline' : 'lock-open-outline'"></ion-icon>
-          <span class="hidden md:inline">{{ isOverlayLocked() ? 'Lock Layout' : 'Unlock Layout' }}</span>
-          <span class="md:hidden">{{ isOverlayLocked() ? 'Lock' : 'Unlock' }}</span>
-        </button>
-        <button [class.bg-emerald-600]="!isRtmpStreaming()" [class.hover:bg-emerald-500]="!isRtmpStreaming()"
-          [class.bg-rose-600]="isRtmpStreaming()" [class.hover:bg-rose-500]="isRtmpStreaming()"
-          (click)="toggleRtmp()"
-          class="text-white text-[8px] md:text-xs font-bold px-4 py-2 md:px-6 md:py-3 rounded-xl shadow-lg transition-all active:scale-95">
-          {{ isRtmpStreaming() ? 'Stop RTMP' : 'Go Live' }}
-        </button>
-        <button
-          class="bg-slate-800 hover:bg-slate-700 text-white text-[8px] md:text-xs font-bold px-4 py-2 md:px-6 md:py-3 rounded-xl shadow-lg transition-all active:scale-95">
-          End session
-        </button>
-      </div>
-    </header>
-
-    <!-- Main Content Area -->
-    <main class="flex-1 flex flex-col md:flex-row landscape:flex-row gap-2 md:gap-8 min-h-0 overflow-hidden">
-
-      <!-- Sidebar/Switcher: Scenes -->
-      <aside class="w-full landscape:w-[150px] md:w-64 max-h-[25vh] landscape:max-h-full md:max-h-full flex flex-col gap-2 md:gap-4">
-        <div class="flex-1 overflow-x-auto overflow-y-hidden landscape:overflow-y-auto landscape:overflow-x-hidden md:overflow-y-auto md:overflow-x-hidden scrollbar-hide">
-          <div class="flex flex-row landscape:flex-col md:flex-col gap-2 md:gap-4 pb-1 md:pb-0 landscape:pb-0">
-            <div *ngFor="let cam of cameras(); let i = index" (click)="switchCamera(cam.id)"
-              class="group relative rounded-xl md:rounded-2xl overflow-hidden cursor-pointer transition-all border-2 md:border-4 shadow-2xl flex-shrink-0 w-28 landscape:w-full md:w-full"
-              [class.border-rose-600]="activeCameraId() === cam.id"
-              [class.border-emerald-500]="previewCameraId() === cam.id && activeCameraId() !== cam.id"
-              [class.border-transparent]="activeCameraId() !== cam.id && previewCameraId() !== cam.id">
-              <div class="aspect-video bg-slate-900 overflow-hidden relative flex items-center justify-center">
-                <video [srcObject]="cam.stream" autoplay playsinline muted
-                  class="w-full h-full object-cover transition-transform duration-500"
-                  [style.transform]="'rotate(' + (cam.rotation || 0) + 'deg) scale(' + ((cam.rotation === 90 || cam.rotation === 270) ? 1.777 : 1) + ')'"></video>
-  
-                <!-- Live Tag -->
-                <div *ngIf="activeCameraId() === cam.id"
-                  class="absolute top-1 right-8 md:top-2 md:right-10 bg-rose-600 text-white text-[6px] md:text-[7px] font-black px-1 md:px-1.5 py-0.5 rounded-md uppercase tracking-tighter flex items-center gap-1 shadow-lg pointer-events-none">
-                  <div class="w-1 h-1 bg-white rounded-full animate-pulse"></div>
-                  Live
+        <!-- Top Menu Bar (OBS Studio Style) -->
+        <header class="bg-[#0a0a0a] border-b border-[#bf913b]/30 px-1 py-0.5 flex items-center justify-between z-50">
+            <div class="flex items-center gap-3 text-[11px] font-medium text-[#909090]">
+                <div class="flex gap-2.5 px-2">
+                    <span class="hover:text-white cursor-default">File</span>
+                    <span class="hover:text-white cursor-default">Edit</span>
+                    <span class="hover:text-white cursor-default">View</span>
+                    <span class="hover:text-white cursor-default">Docks</span>
+                    <span class="hover:text-white cursor-default">Profile</span>
+                    <span class="hover:text-white cursor-default">Scene Collection</span>
+                    <span class="hover:text-white cursor-default">Tools</span>
+                    <span class="hover:text-white cursor-default">Help</span>
                 </div>
-
-                <!-- Rotate Button -->
-                <button (click)="rotateCamera(cam.id, $event)"
-                  class="absolute top-1 right-1 md:top-2 md:right-2 bg-slate-900/80 hover:bg-blue-600 text-white p-1 md:p-1.5 rounded-md transition-all shadow-lg pointer-events-auto z-20 backdrop-blur-sm active:scale-95">
-                  <ion-icon name="sync-outline" class="text-[10px] md:text-sm"></ion-icon>
-                </button>
-  
-                <div class="absolute top-1 left-1 md:top-2 md:left-2 flex gap-1 pointer-events-none">
-                  <ion-icon name="radio" class="text-[8px] md:text-[10px] text-emerald-500"></ion-icon>
-                </div>
-              </div>
-              <div
-                class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-1.5 md:p-3 pointer-events-none">
-                <span class="text-[7px] md:text-[10px] font-bold uppercase tracking-widest opacity-80 flex items-center gap-1 md:gap-2">
-                  <span class="w-1 h-1.5 md:h-3 bg-blue-600 rounded-full"></span>
-                  Scene 0{{ i + 1 }}
-                </span>
-                <span class="hidden md:block text-[8px] font-mono text-white/40 uppercase mt-0.5 ml-3">{{ cam.id.substring(0,8) }}</span>
-              </div>
             </div>
-  
-            <!-- Media Source Scene -->
-            <div *ngIf="studioSettings.mediaUrl()" (click)="switchMedia()"
-              class="group relative rounded-xl md:rounded-2xl overflow-hidden cursor-pointer transition-all border-2 md:border-4 shadow-2xl flex-shrink-0 w-28 landscape:w-full md:w-full"
-              [class.border-rose-600]="activeCameraId() === 'MEDIA'"
-              [class.border-transparent]="activeCameraId() !== 'MEDIA'">
-              <div class="aspect-video bg-slate-900 flex flex-col items-center justify-center p-2 md:p-4">
-                <ion-icon name="videocam-outline" class="text-xl md:text-3xl text-amber-500 mb-1 md:mb-2"></ion-icon>
-                <span class="text-[7px] md:text-[10px] font-black uppercase text-white/40 tracking-widest">Media</span>
-              </div>
-              <div class="absolute inset-0 bg-slate-950/40 flex items-end p-2 md:p-3 pointer-events-none">
-                <span class="text-[6px] md:text-[8px] font-black text-amber-500 uppercase flex items-center gap-1">
-                  <span class="w-1 md:w-1.5 h-1 md:h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
-                  Media
-                </span>
-              </div>
-              <!-- Delete Action -->
-              <button (click)="removeMedia(); $event.stopPropagation()"
-                class="absolute top-1 right-1 md:top-2 md:right-2 bg-slate-950/80 hover:bg-rose-600 p-1 md:p-1.5 rounded-lg text-white/40 hover:text-white transition-all shadow-xl backdrop-blur-sm z-20">
-                <ion-icon name="close-outline"></ion-icon>
-              </button>
+            <div class="text-[10px] text-[#909090] font-mono pr-4">
+                OBS Studio 32.0.4 - Profile: Untitled - Scenes: Untitled
             </div>
-          </div>
-        </div>
- 
-        <button
-          class="hidden landscape:flex md:flex w-full bg-slate-900 border border-white/5 py-2 md:py-4 rounded-xl md:rounded-2xl items-center justify-center gap-2 text-[10px] md:text-xs font-bold text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
-          <ion-icon name="add" class="text-sm md:text-lg"></ion-icon>
-          Add Scene
-        </button>
-      </aside>
- 
-      <!-- Central Program View -->
-      <section class="flex-1 flex flex-col gap-2 md:gap-6 min-h-0 min-w-0">
-        <div class="flex-1 bg-slate-900 rounded-3xl md:rounded-[3rem] overflow-hidden shadow-2xl relative border border-white/5 flex items-center justify-center">
-          <video *ngIf="activeCameraId() !== 'MEDIA'" #mainVideo [srcObject]="activeStream()" autoplay playsinline muted
-            class="w-full h-full object-cover transition-transform duration-500"
-            [style.transform]="activeRotationStyle()"></video>
+        </header>
 
-          <!-- Media Player Layer (Static Fullscreen - Optional, can be handled by scene switch) -->
-          <!-- We move this logic to the dynamic overlay container below for resizing/moving -->
+        <!-- Main Workspace (Monitors Area) -->
+        <main class="flex-1 flex flex-col overflow-hidden p-1.5 gap-1.5">
 
-          <!-- Web Overlay Layer -->
-          <!-- Production Canvas (Unified 1080p Stage) -->
-          <div #overlayContainer
-            class="absolute inset-0 pointer-events-none z-10 overflow-hidden flex items-center justify-center transition-all">
-            <!-- Scaled Stage -->
-            <div class="relative bg-transparent origin-center flex-shrink-0"
-              [style.width.px]="studioSettings.overlayWidth()" [style.height.px]="studioSettings.overlayHeight()"
-              [style.transform]="'scale(' + overlayFitScale() + ')'">
+            <!-- Upper Section: Dynamic Monitor Suite (Centering logic in container) -->
+            <div class="flex-[3] flex min-h-0 py-1 transition-all duration-500 overflow-hidden"
+                [class.gap-2]="isStudioMode()" [class.justify-center]="!isStudioMode()">
 
-              <!-- General Overlay Layer -->
-              <div *ngIf="studioSettings.showOverlay() && studioSettings.overlayUrl()"
-                class="absolute transition-shadow touch-none" [class.bg-rose-500/5]="!isOverlayLocked()"
-                [class.pointer-events-auto]="!isOverlayLocked()" [class.cursor-move]="!isOverlayLocked()"
-                [class.outline]="!isOverlayLocked()" [class.outline-rose-500]="!isOverlayLocked()"
-                [class.outline-2]="!isOverlayLocked()" [style.width.px]="studioSettings.overlayWidth()"
-                [style.height.px]="studioSettings.overlayHeight()" [style.left.px]="studioSettings.overlayLeft()"
-                [style.top.px]="studioSettings.overlayTop()"
-                [style.transform]="'scale(' + studioSettings.overlayScale() + ')'"
-                [style.opacity]="studioSettings.overlayOpacity()" style="transform-origin: top left;"
-                (pointerdown)="onOverlayPointerDown($event, 'DRAGGING', 'OVERLAY')">
-                <iframe [src]="sanitizedOverlayUrl()"
-                  class="w-full h-full border-none bg-transparent pointer-events-none"></iframe>
+                <!-- PREVIEW MONITOR -->
+                <div *ngIf="isStudioMode()" class="flex-1 flex flex-col bg-[#16171b] border border-[#bf913b]/20 relative shadow-inner overflow-hidden">
+                    <div class="bg-[#0a0a0a] px-2 py-0.5 flex justify-between items-center h-7 border-b border-[#bf913b]/40">
+                        <span class="text-[11px] font-bold text-[#bf913b] uppercase tracking-wider">Preview Monitor</span>
+                    </div>
+                    <div class="flex-1 flex items-center justify-center bg-black relative">
+                        <video *ngIf="previewCameraId() !== 'MEDIA'" [srcObject]="previewStream()" autoplay playsinline
+                            muted class="w-full h-full object-contain opacity-40 transition-transform duration-300"
+                            [style.transform]="previewRotationStyle()"></video>
 
-                <!-- Utility Toolbar -->
-                <div *ngIf="!isOverlayLocked()" class="absolute -top-12 left-0 flex gap-2 pointer-events-auto z-[60]">
-                  <button (click)="centerOverlay('OVERLAY')"
-                    class="bg-rose-600 p-2 rounded-lg text-white shadow-xl hover:bg-rose-500 transition-all active:scale-95">
-                    <ion-icon name="grid-outline"></ion-icon>
-                  </button>
-                  <div
-                    class="bg-slate-900/95 px-3 py-2 rounded-lg border border-white/10 text-[10px] font-mono text-white/50 flex items-center shadow-lg">
-                    OVERLAY: {{studioSettings.overlayWidth()}}x{{studioSettings.overlayHeight()}}
-                  </div>
+                        <div *ngIf="!previewCameraId() && previewCameraId() !== 'MEDIA'"
+                            class="text-[#2d2e34] font-black uppercase text-4xl select-none">
+                        </div>
+                    </div>
+                    <!-- Selection Info Overlay (Like OBS) -->
+                    <div class="absolute bottom-10 left-4 z-20 pointer-events-none border border-blue-500/30 bg-blue-500/5 p-1 px-3 rounded-sm"
+                        *ngIf="previewCameraId()">
+                        <span class="text-[9px] text-blue-400 font-bold uppercase tracking-wider">Selected:
+                            {{(previewCameraId() || '').substring(0,8)}}...</span>
+                    </div>
                 </div>
 
-                <!-- Resize Grip (Improved Hitbox) -->
-                <div *ngIf="!isOverlayLocked()"
-                  class="absolute -bottom-4 -right-4 w-12 h-12 bg-rose-600 cursor-nwse-resize flex items-center justify-center rounded-full shadow-2xl pointer-events-auto z-50 border-4 border-slate-900 active:scale-125 transition-transform"
-                  (pointerdown)="onOverlayPointerDown($event, 'RESIZING', 'OVERLAY')">
-                  <ion-icon name="contract-outline" class="text-white text-xl rotate-90"></ion-icon>
-                </div>
-              </div>
+                <!-- CENTER TRANSITION (Only in Studio Mode) -->
+                <div *ngIf="isStudioMode()" class="w-[140px] flex flex-col gap-1.5 py-4 px-1">
+                    <div class="flex items-center gap-1">
+                        <button (click)="takeLive()"
+                            class="obs-btn bg-[#404144] hover:bg-[#4e4f53] active:bg-[#2b53b1] flex-1 font-bold text-[11px] py-1.5 rounded-sm">Transition</button>
+                        <button class="obs-btn bg-[#404144] w-6 py-1.5 text-center font-black">⋮</button>
+                    </div>
 
-              <!-- Scoreboard (Ticker) Layer -->
-              <div *ngIf="studioSettings.scoreboardId()" class="absolute transition-shadow touch-none"
-                [class.bg-blue-500/5]="!isOverlayLocked()" [class.pointer-events-auto]="!isOverlayLocked()"
-                [class.cursor-move]="!isOverlayLocked()" [class.outline]="!isOverlayLocked()"
-                [class.outline-blue-500]="!isOverlayLocked()" [class.outline-2]="!isOverlayLocked()"
-                [style.width.px]="studioSettings.scoreboardWidth()"
-                [style.height.px]="studioSettings.scoreboardHeight()" [style.left.px]="studioSettings.scoreboardLeft()"
-                [style.top.px]="studioSettings.scoreboardTop()"
-                [style.transform]="'scale(' + studioSettings.scoreboardScale() + ')'"
-                style="transform-origin: top left;"
-                (pointerdown)="onOverlayPointerDown($event, 'DRAGGING', 'SCOREBOARD')">
-                <iframe [src]="sanitizedScoreboardUrl()"
-                  class="w-full h-full border-none bg-transparent pointer-events-none"></iframe>
+                    <div class="flex items-center gap-1 mt-2">
+                        <span class="text-[9px] font-bold text-[#909090] uppercase tracking-tighter grow">Quick Transitions</span>
+                    </div>
 
-                <!-- Utility Toolbar -->
-                <div *ngIf="!isOverlayLocked()" class="absolute -top-12 left-0 flex gap-2 pointer-events-auto z-[60]">
-                  <button (click)="centerOverlay('SCOREBOARD')"
-                    class="bg-rose-600 p-2 rounded-lg text-white shadow-xl hover:bg-rose-500 transition-all active:scale-95">
-                    <ion-icon name="grid-outline"></ion-icon>
-                  </button>
-                  <div
-                    class="bg-slate-900/95 px-3 py-2 rounded-lg border border-white/10 text-[10px] font-mono text-white/50 flex items-center shadow-lg">
-                    SCOREBOARD (CricketSasa)
-                  </div>
+                    <div class="flex flex-col gap-1 mt-1">
+                        <button (click)="takeLive()" class="obs-btn bg-[#4c4c4c] text-[10px] py-1 text-left px-3">Cut</button>
+                        <button class="obs-btn bg-[#404144] text-[10px] py-1 text-left px-3">Fade (300ms)</button>
+                    </div>
                 </div>
 
-                <!-- Resize Grip (Improved Hitbox) -->
-                <div *ngIf="!isOverlayLocked()"
-                  class="absolute -bottom-4 -right-4 w-12 h-12 bg-rose-600 cursor-nwse-resize flex items-center justify-center rounded-full shadow-2xl pointer-events-auto z-50 border-4 border-slate-900 active:scale-125 transition-transform"
-                  (pointerdown)="onOverlayPointerDown($event, 'RESIZING', 'SCOREBOARD')">
-                  <ion-icon name="contract-outline" class="text-white text-xl rotate-90"></ion-icon>
-                </div>
-              </div>
+                <!-- PROGRAM MONITOR (Dynamic Size) -->
+                <div class="flex flex-col bg-[#16171b] border border-[#fbbf24]/30 relative shadow-2xl overflow-hidden transition-all duration-500"
+                    [class.flex-1]="isStudioMode()" 
+                    [class.w-full]="!isStudioMode()"
+                    [class.max-w-[960px]]="!isStudioMode()">
+                    
+                    <div class="bg-gradient-to-r from-[#0a0a0a] to-[#1a1a1a] px-2 py-0.5 flex justify-between items-center h-7 border-b border-[#fbbf24]/50">
+                        <span class="text-[11px] font-black text-[#fbbf24] uppercase tracking-wider">Program Monitor</span>
+                        <div class="flex gap-2">
+                            <button (click)="toggleGrid()" class="text-[9px] bg-[#fbbf24]/10 hover:bg-[#fbbf24]/20 text-[#fbbf24] px-1.5 py-0.5 rounded border border-[#fbbf24]/20 transition-all uppercase font-bold">
+                                Grid: {{ showGrid() ? 'ON' : 'OFF' }}
+                            </button>
+                        </div>
+                    </div>
 
-              <!-- Media Layer (Draggable/Resizable) -->
-              <div *ngIf="studioSettings.mediaUrl()" class="absolute transition-shadow touch-none"
-                [class.bg-amber-500/5]="!isOverlayLocked()" [class.pointer-events-auto]="!isOverlayLocked()"
-                [class.cursor-move]="!isOverlayLocked()" [class.outline]="!isOverlayLocked()"
-                [class.outline-amber-500]="!isOverlayLocked()" [class.outline-2]="!isOverlayLocked()"
-                [style.width.px]="studioSettings.mediaWidth()"
-                [style.height.px]="studioSettings.mediaHeight()" [style.left.px]="studioSettings.mediaLeft()"
-                [style.top.px]="studioSettings.mediaTop()"
-                [style.transform]="'scale(' + studioSettings.mediaScale() + ')'"
-                style="transform-origin: top left;"
-                (pointerdown)="onOverlayPointerDown($event, 'DRAGGING', 'MEDIA')">
-                
-                <div class="w-full h-full relative group">
-                   <video *ngIf="mediaType() === 'video'" [src]="studioSettings.mediaUrl()" autoplay loop
-                     class="w-full h-full object-cover rounded-lg overflow-hidden"></video>
-                   <img *ngIf="mediaType() === 'image'" [src]="studioSettings.mediaUrl()" 
-                     class="w-full h-full object-contain bg-slate-900/40 rounded-lg">
-                </div>
+                    <div class="flex-1 flex items-center justify-center bg-black relative border-2 border-transparent"
+                        [class.!border-[#da3633]]="isRtmpStreaming()">
 
-                <!-- Utility Toolbar -->
-                <div *ngIf="!isOverlayLocked()" class="absolute -top-12 left-0 flex gap-2 pointer-events-auto z-[60]">
-                  <button (click)="centerOverlay('MEDIA')"
-                    class="bg-rose-600 p-2 rounded-lg text-white shadow-xl hover:bg-rose-500 transition-all active:scale-95">
-                    <ion-icon name="grid-outline"></ion-icon>
-                  </button>
-                  <button (click)="removeMedia()"
-                    class="bg-rose-600 p-2 rounded-lg text-white shadow-xl hover:bg-rose-500 transition-all active:scale-95">
-                    <ion-icon name="trash-outline" class="text-xs"></ion-icon>
-                  </button>
-                  <div
-                    class="bg-slate-900/95 px-3 py-2 rounded-lg border border-white/10 text-[10px] font-mono text-white/50 flex items-center shadow-lg">
-                    MEDIA LAYER
-                  </div>
-                </div>
+                        <!-- The Composing Canvas (Broadcast Output) -->
+                        <canvas #composingCanvas class="max-w-full max-h-full object-contain shadow-2xl"></canvas>
+                        
+                        <!-- Hidden Video Source for Compositor (required to pull frames from) -->
+                        <video #mainVideo [srcObject]="activeStream()" autoplay playsinline muted 
+                               class="absolute opacity-0 pointer-events-none w-px h-px"></video>
+                        
+                        <!-- Interactive Transform Layer -->
+                        <div class="absolute inset-0 z-30 cursor-crosshair overflow-hidden" 
+                             (pointerdown)="selectOverlay(null, $event)"
+                             (pointermove)="onMediaPointerMove($event)" 
+                             (pointerup)="onMediaPointerUp($event)"
+                             (pointerleave)="onMediaPointerUp($event)">
+                            
+                            <!-- Alignment Grid -->
+                            <div *ngIf="showGrid()" class="absolute inset-0 pointer-events-none opacity-20"
+                                 style="background-image: 
+                                    linear-gradient(to right, #fbbf24 1px, transparent 1px),
+                                    linear-gradient(to bottom, #fbbf24 1px, transparent 1px);
+                                    background-size: 10% 10%;">
+                            </div>
 
-                <!-- Resize Grip -->
-                <div *ngIf="!isOverlayLocked()"
-                  class="absolute -bottom-4 -right-4 w-12 h-12 bg-rose-600 cursor-nwse-resize flex items-center justify-center rounded-full shadow-2xl pointer-events-auto z-50 border-4 border-slate-900 active:scale-125 transition-transform"
-                  (pointerdown)="onOverlayPointerDown($event, 'RESIZING', 'MEDIA')">
-                  <ion-icon name="contract-outline" class="text-white text-xl rotate-90"></ion-icon>
-                </div>
-              </div>
+                            <!-- Interactive Overlays -->
+                            <ng-container *ngFor="let overlay of mediaOverlays()">
+                                <div *ngIf="overlay.isVisible"
+                                     class="absolute border-2 transition-all cursor-move group/box"
+                                     [class.border-transparent]="selectedOverlayId() !== overlay.id"
+                                     [class.border-[#fbbf24]]="selectedOverlayId() === overlay.id"
+                                     [class.border-dashed]="selectedOverlayId() === overlay.id"
+                                     (pointerdown)="onMediaPointerDown(overlay.id, $event, 'MEDIA', 'DRAGGING')"
+                                     [style.left.%]="(overlay.x / 1280) * 100"
+                                     [style.top.%]="(overlay.y / 720) * 100"
+                                     [style.width.%]="((overlay.type === 'image' ? overlay.width : 1280) * (overlay.scale || 1.0) / 1280) * 100"
+                                     [style.height.%]="((overlay.type === 'image' ? overlay.height : 720) * (overlay.scale || 1.0) / 720) * 100">
+                                    
+                                    <div *ngIf="selectedOverlayId() === overlay.id"
+                                         class="absolute -top-5 left-0 bg-[#fbbf24] text-black text-[8px] font-black px-1.5 py-0.5 rounded-t tracking-tighter uppercase whitespace-nowrap shadow-xl">
+                                        {{overlay.name}} [{{(overlay.scale || 1).toFixed(2)}}x]
+                                    </div>
 
+                                    <!-- Resize Handle (Bottom Right) -->
+                                    <div *ngIf="selectedOverlayId() === overlay.id"
+                                         class="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-[#fbbf24] border border-black cursor-nwse-resize shadow-lg z-40"
+                                         (pointerdown)="onMediaPointerDown(overlay.id, $event, 'MEDIA', 'RESIZING')">
+                                    </div>
+                                </div>
+                            </ng-container>
+                        </div>
+
+                        <div *ngIf="!activeStream() && activeCameraId() !== 'MEDIA'" class="text-[#2d2e34] font-black uppercase text-4xl select-none">
+                        </div>
+
+                        <!-- Replay Stinger Animation (Cinematic Layer) -->
+                        <div *ngIf="isStingerVisible()" class="stinger-overlay">
+                            <div class="stinger-content">
+                                <h2>REPLAY</h2>
+                            </div>
+                        </div>
+
+                        <!-- Flash Transition (Cut Effect) -->
+                        <div *ngIf="isFlashTransitioning()" class="flash-overlay"></div>
+
+                    </div>
+                </div>
             </div>
-          </div>
 
-          <div *ngIf="!activeStream()"
-            class="absolute inset-0 flex flex-col items-center justify-center text-slate-500">
-            <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-4">
-              <ion-icon name="videocam" class="text-3xl"></ion-icon>
-            </div>
-            <p class="font-bold uppercase tracking-[0.3em] text-xs">Waiting for Signal</p>
-          </div>
-        </div>
-
-        <!-- Sub-Header Info -->
-        <div class="flex items-center justify-between px-2 md:px-8 text-[8px] md:text-[11px] font-medium text-slate-400">
-          <div class="flex items-center gap-3 md:gap-6">
-            <div class="flex items-center gap-1 md:gap-2">
-              <span class="opacity-50">Source:</span>
-              <span class="text-white">{{ activeCameraId() || 'None' }}</span>
-              <ion-icon name="options-outline" class="text-xs md:text-base ml-1"></ion-icon>
-            </div>
-          </div>
-
-          <div class="hidden sm:flex items-center gap-4 md:gap-8">
-            <div class="flex flex-col gap-1 w-32 md:w-48">
-              <div class="flex justify-between uppercase text-[6px] md:text-[8px] font-black tracking-tighter">
-                <span>Sound</span>
-                <span>-2 db</span>
-              </div>
-              <div class="h-1 md:h-1.5 bg-slate-900 rounded-full overflow-hidden flex gap-0.5">
-                <div class="h-full bg-emerald-500 rounded-full transition-all duration-75 w-[60%]"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bottom Action Bar -->
-        <div
-          class="flex items-center justify-center gap-1 md:gap-4 bg-slate-900/40 backdrop-blur-xl border border-white/5 py-2 md:py-4 px-4 md:px-8 rounded-full self-center shadow-2xl max-w-full">
-          <div class="flex flex-col items-center gap-1 group cursor-pointer px-2 md:px-4">
+            <!-- Mid Controls Bar (Properties / Filters) -->
             <div
-              class="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-white/40 group-hover:bg-white/5 group-hover:text-white transition-all">
-              <ion-icon name="grid-outline" class="text-lg md:text-xl"></ion-icon>
+                class="h-9 bg-[#0a0a0a] border-y border-[#bf913b]/30 my-0.5 flex items-center px-4 justify-between select-none shrink-0">
+                <div class="text-[11px] text-[#e0e0e0] font-medium opacity-80">
+                    {{ previewCameraId() ? 'Source: ' + previewCameraId() : 'No source selected' }}
+                </div>
+                <div class="flex gap-1">
+                    <button (click)="openSettings()"
+                        class="bg-[#2d2e34] hover:bg-[#404144] border border-[#111] px-3 py-1 rounded-sm text-[11px] flex items-center gap-1.5 transition-colors">
+                        <span class="text-[12px] opacity-60">⚙️</span>
+                        <span>Properties</span>
+                    </button>
+                    <button
+                        class="bg-[#2d2e34] hover:bg-[#404144] border border-[#111] px-3 py-1 rounded-sm text-[11px] flex items-center gap-1.5 transition-colors">
+                        <span class="text-[12px] opacity-60">📁</span>
+                        <span>Filters</span>
+                    </button>
+                </div>
+                <div class="w-32"></div> <!-- Spacer -->
             </div>
-            <span class="text-[6px] md:text-[8px] font-black uppercase tracking-widest text-white/20 group-hover:text-white/60">Source</span>
-          </div>
 
-          <div class="flex flex-col items-center gap-1 group cursor-pointer px-2 md:px-4">
-            <div (click)="takeLive()"
-              class="w-10 h-10 md:w-14 md:h-14 bg-rose-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-rose-600/20 active:scale-90 transition-all border-2 md:border-4 border-white/20">
-              <span class="text-[8px] md:text-[10px] font-black uppercase">CUT</span>
+            <!-- Lower Section: The Consolidated 4 Docks Area -->
+            <div class="flex-[1.5] flex gap-1 min-h-0">
+
+                <!-- 1. CONNECTED CAMERAS DOCK (Merged Scenes & Sources) -->
+                <app-obs-dock title="Connected Cameras" class="w-1/3" (action)="handleSourceAction($event)">
+                    <div class="flex flex-col select-none">
+                        <!-- Active Scenes as Sub-headers or just integrated -->
+                        <div
+                            class="px-2 py-1 bg-[#0a0a0a] text-[9px] font-black text-[#bf913b] uppercase border-b border-[#bf913b]/20 tracking-widest">
+                            PRODUCTION FEED</div>
+
+                        <div *ngFor="let source of obsSources()" (click)="switchCamera(source.id)"
+                            class="px-4 py-2.5 text-[13px] flex items-center justify-between group border-b border-white/5 transition-all cursor-pointer hover:bg-white/5"
+                            [class.bg-[#bf913b]]="source.isActive">
+                            <div class="flex items-center gap-3.5">
+                                <span class="text-[14px] opacity-100 text-[#fbbf24] drop-shadow-sm">{{ source.type ===
+                                    'camera' ? '📹' : '🎞️' }}</span>
+                                <span class="font-extrabold tracking-tight truncate max-w-[160px] text-[#fef3c7]"
+                                    [class.!text-black]="source.isActive">{{ source.name }}</span>
+                                <span *ngIf="source.isActive"
+                                    class="text-[9px] bg-black/80 px-1.5 py-0.5 rounded-[2px] uppercase font-black text-[#bf913b]">LIVE</span>
+                            </div>
+                            <div class="flex gap-3">
+                                <button (click)="toggleSourceVisibility(source.id, $event)"
+                                    class="transition-transform active:scale-90 hover:opacity-100 p-0.5">
+                                    <ion-icon [name]="source.isVisible ? 'eye-outline' : 'eye-off-outline'"
+                                        class="text-[14px] transition-all" [class.text-[#fbbf24]]="source.isVisible"
+                                        [class.text-[#94a3b8]/40]="!source.isVisible"
+                                        [class.!text-black]="source.isActive && source.isVisible"></ion-icon>
+                                </button>
+                                <button (click)="toggleSourceLock(source.id, $event)"
+                                    class="transition-transform active:scale-90 hover:opacity-100 p-0.5">
+                                    <ion-icon [name]="source.isLocked ? 'lock-closed-outline' : 'lock-open-outline'"
+                                        class="text-[14px] transition-all" [class.text-[#fbbf24]]="source.isLocked"
+                                        [class.text-[#94a3b8]/40]="!source.isLocked"
+                                        [class.!text-black]="source.isActive && source.isLocked"></ion-icon>
+                                </button>
+                                <button *ngIf="source.type === 'media'" (click)="removeSource(source.id, $event)"
+                                    class="transition-transform active:scale-90 hover:opacity-100 hover:text-rose-500 p-0.5">
+                                    <ion-icon name="trash-outline" class="text-[14px] transition-all"
+                                        [class.text-rose-600/60]="!source.isActive"
+                                        [class.text-black/60]="source.isActive"></ion-icon>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </app-obs-dock>
+
+                <!-- 3. AUDIO MIXER DOCK -->
+                <app-obs-dock title="Audio Mixer" [showFooter]="false" class="flex-1">
+                    <div class="p-2.5 flex flex-col gap-3.5 overflow-y-auto max-h-full scrollbar-hidden">
+                        <app-audio-meter name="Desktop Audio" [level]="audioMeterLevel()"
+                            [peak]="audioMeterLevel() * 1.1" [volume]="-13.3" [volumeLevel]="volumeLevel()"
+                            [isMuted]="isMuted()" (mute)="toggleMute()"
+                            (volumeChange)="volumeLevel.set($event)"></app-audio-meter>
+
+                        <app-audio-meter name="Media Source" [level]="0" [peak]="0" [volume]="0.0" [volumeLevel]="80"
+                            [isMuted]="false"></app-audio-meter>
+                    </div>
+                </app-obs-dock>
+
+                <!-- 4. SCENE TRANSITIONS DOCK -->
+                <app-obs-dock title="Scene Transitions" class="w-1/5">
+                    <div class="p-2 flex flex-col gap-2">
+                        <div class="relative group">
+                            <select
+                                class="bg-[#2d2e34] border border-[#111] text-[11px] p-1 outline-none w-full text-white appearance-none pr-6">
+                                <option>Fade</option>
+                                <option>Cut</option>
+                            </select>
+                            <span class="absolute right-2 top-1.5 text-[8px] pointer-events-none opacity-40">▼</span>
+                        </div>
+
+                        <div class="flex flex-col gap-1 mt-1">
+                            <span class="text-[9px] text-[#909090] font-bold">Duration</span>
+                            <div class="flex items-center gap-1.5 h-6">
+                                <input type="number"
+                                    class="w-full bg-[#2d2e34] border border-[#111] text-[11px] p-0.5 text-center text-white"
+                                    value="300">
+                                <div class="flex flex-col gap-0.5">
+                                    <button class="bg-[#404144] px-1 text-[6px]">▲</button>
+                                    <button class="bg-[#404144] px-1 text-[6px]">▼</button>
+                                </div>
+                                <span class="text-[9px] text-[#555] font-bold">ms</span>
+                            </div>
+                        </div>
+                    </div>
+                </app-obs-dock>
+
+                <!-- 5. CONTROLS DOCK -->
+                <app-obs-dock title="Controls" [showFooter]="false" class="w-1/4">
+                    <div class="p-2 px-3 flex flex-col gap-1.5 h-full">
+                        <button (click)="copyInviteLink()"
+                            class="bg-[#bf913b] border border-[#111] hover:bg-[#d4af37] py-2 font-bold text-[11px] rounded-sm shadow-xl w-full text-black mb-1 transition-all active:scale-[0.98]">
+                            🔗 Copy Camera Link
+                        </button>
+                        <div class="flex gap-1.5">
+                            <button (click)="toggleRtmp()"
+                                class="bg-[#2d2e34] border border-[#111] hover:bg-[#404144] py-1.5 font-medium text-[11px] flex-1 rounded-sm shadow-sm"
+                                [class.bg-rose-700]="isRtmpStreaming()">Start Streaming</button>
+                            <button
+                                class="bg-[#2d2e34] border border-[#111] hover:bg-[#404144] py-1.5 font-medium text-[11px] flex-1 rounded-sm shadow-sm">Manage
+                                Broadcast</button>
+                        </div>
+                        <button (click)="toggleReplayRecording()"
+                            class="bg-[#2d2e34] border border-[#111] hover:bg-[#404144] py-1.5 font-medium text-[11px] rounded-sm shadow-sm w-full"
+                            [class.bg-emerald-700]="isRecordingReplay()">Start Recording</button>
+                        <button
+                            class="bg-[#2d2e34] border border-[#111] hover:bg-[#404144] py-1.5 font-medium text-[11px] rounded-sm shadow-sm w-full">Start
+                            Virtual Camera</button>
+                        <button (click)="toggleStudioMode()"
+                            class="border border-[#bf913b]/20 py-1.5 font-medium text-[11px] rounded-sm shadow-sm w-full transition-all"
+                            [class.bg-[#bf913b]]="isStudioMode()" [class.bg-[#0a0a0a]]="!isStudioMode()"
+                            [class.text-black]="isStudioMode()">
+                            Studio Mode
+                        </button>
+                        <button (click)="openSettings()"
+                            class="bg-[#2d2e34] border border-[#111] hover:bg-[#404144] py-1.5 font-medium text-[11px] rounded-sm shadow-sm w-full">Settings</button>
+                    </div>
+                </app-obs-dock>
+
             </div>
-            <span class="text-[6px] md:text-[8px] font-black uppercase tracking-widest text-rose-500">Live</span>
-          </div>
+        </main>
 
-          <div (click)="openMediaPicker()" class="flex flex-col items-center gap-1 group cursor-pointer px-2 md:px-4">
-            <div
-              class="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-white/40 group-hover:bg-white/5 group-hover:text-white transition-all">
-              <ion-icon name="videocam-outline" class="text-lg md:text-xl"></ion-icon>
+        <!-- Professional Status Bar Footer (Pixel Perfect icons) -->
+        <footer
+            class="bg-[#0a0a0a] border-t border-[#bf913b]/30 h-7 flex items-center px-4 justify-between border-b-[3px] border-[#000]">
+            <div class="flex items-center gap-8 text-[11px] font-bold font-mono">
+
+                <!-- Signal Info -->
+                <div class="flex items-center gap-1 text-[#909090]">
+                    <span class="text-[12px] opacity-40">▊▊ı</span>
+                    <span class="opacity-80">00:00:00</span>
+                </div>
+
+                <!-- LIVE Status -->
+                <div class="flex items-center gap-1.5" [class.text-rose-500]="isRtmpStreaming()"
+                    [class.text-slate-800]="!isRtmpStreaming()">
+                    <span class="text-[12px]">●</span>
+                    <span class="opacity-80">LIVE: 00:00:00</span>
+                </div>
+
+                <!-- REC Status -->
+                <div class="flex items-center gap-1.5" [class.text-emerald-500]="isRecordingReplay()"
+                    [class.text-slate-800]="!isRecordingReplay()">
+                    <span class="text-[12px]">●</span>
+                    <span class="opacity-80">REC: 00:00:00</span>
+                </div>
             </div>
-            <span
-              class="text-[6px] md:text-[8px] font-black uppercase tracking-widest text-white/20 group-hover:text-white/60">Media</span>
-          </div>
 
-          <div class="hidden sm:flex flex-col items-center gap-1 group cursor-pointer px-2 md:px-4">
-            <div
-              class="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-white/40 group-hover:bg-white/5 group-hover:text-white transition-all">
-              <ion-icon name="browsers-outline" class="text-lg md:text-xl"></ion-icon>
+            <!-- System Stats (Right) -->
+            <div class="flex items-center gap-6 text-[10px] font-bold font-mono text-[#909090] opacity-80">
+                <span>CPU: 6.2%</span>
+                <span>30.00 / 30.00 FPS</span>
             </div>
-            <span class="text-[6px] md:text-[8px] font-black uppercase tracking-widest text-white/20 group-hover:text-white/60">Mode</span>
-          </div>
+        </footer>
 
-          <div (click)="openSettings()"
-            class="flex flex-col items-center gap-1 group cursor-pointer px-2 md:px-4 border-l border-white/5 ml-1 md:ml-2">
-            <div
-              class="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-white/40 group-hover:bg-white/5 group-hover:text-white transition-all">
-              <ion-icon name="settings-outline" class="text-lg md:text-xl"></ion-icon>
-            </div>
-            <span
-              class="text-[6px] md:text-[8px] font-black uppercase tracking-widest text-white/20 group-hover:text-white/60">Setup</span>
-          </div>
-        </div>
-
-      </section>
-
-    </main>
-
-    <!-- Diagnostics Overlay -->
-    <div
-      class="hidden md:block fixed bottom-32 left-8 bg-slate-900/90 backdrop-blur-xl p-4 rounded-2xl border border-white/10 text-[9px] font-mono z-50">
-      <div class="flex items-center gap-2 mb-2">
-        <div class="w-2 h-2 rounded-full" [class.bg-emerald-500]="signalingStatus() === 'SUBSCRIBED'"
-          [class.bg-rose-500]="signalingStatus() !== 'SUBSCRIBED'"></div>
-        <span class="text-white/40 uppercase">Signaling:</span> {{ signalingStatus() }}
-      </div>
-      <div class="space-y-1">
-        <div *ngFor="let item of peerConnectionStates() | keyvalue" class="flex items-center gap-2">
-          <span class="text-white/40">{{ item.key.substring(0,8) }}:</span>
-          <span [class.text-blue-400]="item.value === 'connected'" [class.text-rose-400]="item.value === 'failed'">{{
-            item.value }}</span>
-        </div>
-      </div>
-      <div class="mt-3 pt-3 border-t border-white/5 flex gap-2">
-        <button (click)="retrySignaling()"
-          class="flex-1 py-1.5 bg-white/10 hover:bg-white/20 rounded-md transition-all text-[7px] font-black uppercase tracking-widest text-white/40">
-          Retry
-        </button>
-        <button (click)="testSignaling()"
-          class="flex-1 py-1.5 bg-blue-600/20 hover:bg-blue-600/40 rounded-md transition-all text-[7px] font-black uppercase tracking-widest text-blue-400">
-          Test DB
-        </button>
-      </div>
     </div>
 
-    <!-- Hidden File Picker -->
-    <input type="file" #mediaPicker (change)="onMediaFileSelected($event)" accept="video/*,image/*" style="display: none;">
+    <!-- Composing Canvas (Hidden or for RTMP stream background) -->
+    <canvas #rtmpCanvas width="1280" height="720" class="hidden"></canvas>
 
-    <!-- Hidden Composing Canvas for Program Output -->
-    <canvas #composingCanvas width="1920" height="1080" class="hidden"></canvas>
-  </div>
+    <!-- Hidden Media File Input -->
+    <input type="file" #mediaFileInput class="hidden" (change)="onMediaFileSelected($event)" accept="image/*,video/*">
+
 </ion-content>

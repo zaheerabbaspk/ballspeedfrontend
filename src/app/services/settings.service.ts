@@ -17,7 +17,7 @@ export class SettingsService {
   overlayHeight = signal<number>(1080);
   overlayTop = signal<number>(0);
   overlayLeft = signal<number>(0);
-  
+
   scoreboardId = signal<string>('');
   scoreboardOperator = signal<string>('11');
   scoreboardWidth = signal<number>(1600);
@@ -25,6 +25,8 @@ export class SettingsService {
   scoreboardTop = signal<number>(850);
   scoreboardLeft = signal<number>(160);
   scoreboardScale = signal<number>(1);
+  showPitchGraph = signal<boolean>(true);
+  showManualGrid = signal<boolean>(false);
 
   // Media layer properties
   mediaTop = signal<number>(50);
@@ -32,7 +34,7 @@ export class SettingsService {
   mediaWidth = signal<number>(400);
   mediaHeight = signal<number>(300);
   mediaScale = signal<number>(1);
-  
+
   // Storage keys
   private readonly RECOVERY_KEY = 'ballspeed_settings';
 
@@ -65,7 +67,9 @@ export class SettingsService {
       mediaLeft: this.mediaLeft(),
       mediaWidth: this.mediaWidth(),
       mediaHeight: this.mediaHeight(),
-      mediaScale: this.mediaScale()
+      mediaScale: this.mediaScale(),
+      showPitchGraph: this.showPitchGraph(),
+      showManualGrid: this.showManualGrid()
     };
     localStorage.setItem(this.RECOVERY_KEY, JSON.stringify(data));
   }
@@ -103,6 +107,8 @@ export class SettingsService {
         this.mediaWidth.set(data.mediaWidth ?? 400);
         this.mediaHeight.set(data.mediaHeight ?? 300);
         this.mediaScale.set(data.mediaScale ?? 1);
+        this.showPitchGraph.set(data.showPitchGraph ?? true);
+        this.showManualGrid.set(data.showManualGrid ?? false);
       } catch (e) {
         console.error('Failed to load settings:', e);
       }

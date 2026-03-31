@@ -30,4 +30,8 @@ export class LandingPage {
       this.router.navigate(['/room', this.roomId, 'camera']);
     }
   }
+
+  goDrsReview() {
+    this.router.navigate(['/drs-review']);
+  }
 }

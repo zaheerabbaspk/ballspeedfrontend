@@ -1,0 +1,172 @@
+<ion-content class="drs-page">
+
+  <!-- ===== UPLOAD STATE ===== -->
+  <div *ngIf="reviewState === 'idle'" class="upload-screen">
+    <div class="drs-logo">
+      <div class="logo-icon">🏏</div>
+      <h1>DRS <span>AI REVIEW</span></h1>
+      <p>Ball Tracking • Pitch Impact • Wicket Prediction</p>
+    </div>
+
+    <label class="upload-zone" [class.drag-over]="isDragging"
+           (dragover)="$event.preventDefault(); isDragging=true"
+           (dragleave)="isDragging=false"
+           (drop)="onDrop($event)">
+      <input type="file" accept="video/*" (change)="onFileSelected($event)" hidden #fileInput id="video-upload-input"/>
+      <div class="upload-icon">📹</div>
+      <p class="upload-title">Drop delivery video here</p>
+      <p class="upload-sub">or tap to browse · mp4, webm, mov</p>
+    </label>
+
+    <button class="analyze-btn" *ngIf="selectedFile" (click)="analyze()" id="analyze-btn">
+      <span class="btn-icon">⚡</span>
+      ANALYZE DELIVERY
+    </button>
+    <p class="file-name" *ngIf="selectedFile">📎 {{ selectedFile.name }}</p>
+  </div>
+
+  <!-- ===== PROCESSING STATE ===== -->
+  <div *ngIf="reviewState === 'analyzing'" class="processing-screen">
+    <div class="drs-spinner">
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <div class="ring ring-3"></div>
+      <div class="center-dot"></div>
+    </div>
+    <h2>ANALYZING DELIVERY</h2>
+    <div class="process-steps">
+      <div class="step" [class.active]="processingStep >= 0">🎯 Detecting Ball</div>
+      <div class="step" [class.active]="processingStep >= 1">📐 Tracking Trajectory</div>
+      <div class="step" [class.active]="processingStep >= 2">🏏 Checking Impact</div>
+      <div class="step" [class.active]="processingStep >= 3">🎯 Predicting Stumps</div>
+    </div>
+  </div>
+
+  <!-- ===== RESULT STATE ===== -->
+  <div *ngIf="reviewState !== 'idle' && reviewState !== 'analyzing' && reviewState !== 'error' && result" class="result-screen">
+
+    <div class="result-header">
+      <button class="back-btn" (click)="reset()" id="drs-back-btn">← NEW REVIEW</button>
+      <div class="header-title">BALL TRACKING TECHNOLOGY</div>
+      <div class="conf-badge">{{ (result.data.impact_confidence * 100).toFixed(0) }}% CONF</div>
+    </div>
+
+    <div class="main-stage">
+      
+      <!-- HAWK-EYE FLOATING BADGES (SCREENSHOT STYLE) -->
+      <div class="hawk-eye-badges" *ngIf="reviewState === 'drsGraphVisible' || reviewState === 'finalDecisionVisible'" [@fadeIn]>
+        
+        <!-- TOP LOGO PILLS -->
+        <div class="top-pills">
+          <div class="pill-large review-lost">
+            <div class="blue-edge"></div>
+            <span>REVIEW LOST</span>
+            <div class="red-edge"></div>
+          </div>
+        </div>
+
+        <div class="badge-group">
+          <!-- WICKETS BADGE -->
+          <div class="hawk-badge wickets-badge" *ngIf="reviewState === 'finalDecisionVisible'">
+            <div class="badge-head">WICKETS</div>
+            <div class="badge-body hitting">{{ result.data.decision_raw.wickets }}</div>
+          </div>
+
+          <!-- IMPACT BADGE -->
+          <div class="hawk-badge impact-badge" *ngIf="reviewState === 'finalDecisionVisible'">
+            <div class="badge-head">IMPACT</div>
+            <div class="badge-body in-line">
+              {{ result.data.impact_result === 'IN_LINE' ? 'IN LINE' : 'OUTSIDE LINE' }}
+            </div>
+          </div>
+
+          <!-- PITCHING BADGE -->
+          <div class="hawk-badge pitching-badge">
+            <div class="badge-head">PITCHING</div>
+            <div class="badge-body in-line">{{ result.data.decision_raw.pitching }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT SIDE DECISION BADGES -->
+      <div class="right-badges" *ngIf="reviewState === 'finalDecisionVisible'" [@fadeIn]>
+        <div class="original-decision">
+          <div class="od-title">ORIGINAL DECISION</div>
+          <div class="od-value">OUT</div>
+        </div>
+        <div class="england-review">
+          <span>ENGLAND REVIEW</span>
+        </div>
+      </div>
+
+      <!-- THE PITCH VISUALIZATION -->
+      <div class="pitch-container" [class.break-mode]="reviewState === 'frozenAtImpact' || reviewState === 'drsGraphVisible' || reviewState === 'finalDecisionVisible'">
+        
+        <!-- Play normal video then slow-mo -->
+        <video #videoPlayer 
+               *ngIf="currentVideoUrl"
+               [src]="currentVideoUrl" 
+               muted playsinline
+               class="video-bg"></video>
+
+        <!-- DRS GRAPH VISIBLE ONLY WHEN ALLOWED -->
+        <svg *ngIf="reviewState === 'firstPlayback' || reviewState === 'secondPlaybackSlowMotion' || reviewState === 'drsGraphVisible' || reviewState === 'finalDecisionVisible'" [@fadeIn] #pitchSvg class="pitch-svg" viewBox="0 0 200 500" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+          
+          <!-- Pitch line of stumps overlay (semi-transparent blue trapezoid to match screenshot) -->
+          <polygon *ngIf="reviewState !== 'firstPlayback'" [attr.points]="pitchPolyPoints" fill="#2f5fff" opacity="0.25" />
+
+          <!-- Perspective side lines for the tracking lane -->
+          <polyline *ngIf="reviewState !== 'firstPlayback'" [attr.points]="pitchSideLine1" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-dasharray="8,8"/>
+          <polyline *ngIf="reviewState !== 'firstPlayback'" [attr.points]="pitchSideLine2" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-dasharray="8,8"/>
+          
+          <!-- Stumps Overlay Matches Perspective -->
+          <g *ngIf="reviewState !== 'firstPlayback'">
+            <rect *ngFor="let stump of stumpRectsBot" [attr.x]="stump.x" [attr.y]="stump.y" [attr.width]="stump.w" [attr.height]="stump.h" fill="#f1c40f"/>
+            <rect *ngFor="let stump of stumpRectsTop" [attr.x]="stump.x" [attr.y]="stump.y" [attr.width]="stump.w" [attr.height]="stump.h" fill="#f1c40f"/>
+          </g>
+
+          <!-- Trajectory (Video Path) - visible during all playback passes -->
+          <polyline *ngIf="trajectoryPoints.length > 1 && (reviewState === 'firstPlayback' || reviewState === 'secondPlaybackSlowMotion' || reviewState === 'drsGraphVisible' || reviewState === 'finalDecisionVisible')"
+                    [attr.points]="trajectoryPointsStr"
+                    fill="none" stroke="#fff" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round"
+                    class="trajectory-line"/>
+
+          <!-- Projected Path (Dashed) -->
+          <polyline *ngIf="projectedPoints.length > 1 && reviewState === 'finalDecisionVisible'"
+                    [attr.points]="projectedPointsStr"
+                    fill="none" stroke="#fff" stroke-width="3"
+                    stroke-dasharray="6,4" stroke-linecap="round" stroke-linejoin="round"
+                    class="projected-tube"/>
+
+          <!-- Ball current position -->
+          <circle [attr.cx]="animBallX" [attr.cy]="animBallY"
+                  r="6" fill="#fff" class="anim-ball" [class.visible]="reviewState === 'firstPlayback' || reviewState === 'secondPlaybackSlowMotion'"/>
+          
+          <!-- Impact Marker -->
+          <circle *ngIf="impactPos" 
+                  [attr.cx]="impactPos.x" [attr.cy]="impactPos.y"
+                  r="8" fill="none" stroke="#fff" stroke-width="2" class="ripple"/>
+        </svg>
+
+        <!-- FREEZE FRAME OVERLAY (THE BREAK) -->
+        <div *ngIf="reviewState === 'frozenAtImpact' && result.data.impact_photo" class="freeze-frame" [@fadeIn]>
+          <img [src]="apiBase + '/debug_frame/' + result.data.impact_photo" alt="Impact Frame">
+          <div class="break-label">IMPACT BREAK</div>
+        </div>
+
+      </div>
+      
+      <!-- Side controls omitted for IMPACT phase focus -->
+    </div>
+  </div>
+
+  <!-- ERROR STATE -->
+  <div *ngIf="reviewState === 'error'" class="error-screen">
+    <div class="error-icon">⚠️</div>
+    <h2>Analysis Failed</h2>
+    <p class="error-msg">{{ errorMsg }}</p>
+    <button class="analyze-btn" (click)="reset()" id="try-again-btn">TRY AGAIN</button>
+  </div>
+
+</ion-content>
