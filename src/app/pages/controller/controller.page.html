@@ -40,7 +40,7 @@
                             [class.hidden]="isReplaying() || isReviewMode()"></video>
                             
                         <!-- LIVE TRACKING OVERLAY (STUDIO PREVIEW) -->
-                        <div *ngIf="isStudioMode() && isLiveTrackingActive()" class="absolute inset-0 z-15 pointer-events-none">
+                        <div *ngIf="isStudioMode() && isLiveTrackingActive()" class="absolute inset-0 z-30 pointer-events-none">
                             <svg class="absolute inset-0 w-full h-full drop-shadow-md" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
                                 <defs>
                                     <filter id="liveBallGlowPreview">
@@ -74,23 +74,6 @@
                                 <polygon [attr.points]="drsPitchPoints()"
                                          fill="url(#livePreviewPitchGrad)"
                                          style="mix-blend-mode: normal; opacity: 0.9;"/>
-
-                                <!-- Popping Crease Line -->
-                                <line [attr.x1]="drsPitchCenter() - 50" [attr.y1]="180" 
-                                      [attr.x2]="drsPitchCenter() + 50" [attr.y2]="180" 
-                                      stroke="#ffffff" stroke-width="3" opacity="0.8"/>
-                                <!-- Return Crease Lines -->
-                                <line [attr.x1]="drsPitchCenter() - 50" [attr.y1]="150" 
-                                      [attr.x2]="drsPitchCenter() - 60" [attr.y2]="210" 
-                                      stroke="#ffffff" stroke-width="2" opacity="0.8"/>
-                                <line [attr.x1]="drsPitchCenter() + 50" [attr.y1]="150" 
-                                      [attr.x2]="drsPitchCenter() + 60" [attr.y2]="210" 
-                                      stroke="#ffffff" stroke-width="2" opacity="0.8"/>
-                                      
-                                <!-- Bowling Crease (Base of stumps) -->
-                                <line [attr.x1]="drsPitchCenter() - 35" [attr.y1]="150" 
-                                      [attr.x2]="drsPitchCenter() + 35" [attr.y2]="150" 
-                                      stroke="#ffffff" stroke-width="3" opacity="0.9"/>
                             </svg>
                         </div>
                         
@@ -258,22 +241,7 @@
                                              fill="url(#broadcastPitchGrad)"
                                              style="mix-blend-mode: multiply;"/>
 
-                                    <!-- Popping Crease Line -->
-                                    <line [attr.x1]="drsPitchCenter() - 50" [attr.y1]="180" 
-                                          [attr.x2]="drsPitchCenter() + 50" [attr.y2]="180" 
-                                          stroke="#ffffff" stroke-width="3" opacity="0.8"/>
-                                    <!-- Return Crease Lines -->
-                                    <line [attr.x1]="drsPitchCenter() - 50" [attr.y1]="150" 
-                                          [attr.x2]="drsPitchCenter() - 60" [attr.y2]="210" 
-                                          stroke="#ffffff" stroke-width="2" opacity="0.8"/>
-                                    <line [attr.x1]="drsPitchCenter() + 50" [attr.y1]="150" 
-                                          [attr.x2]="drsPitchCenter() + 60" [attr.y2]="210" 
-                                          stroke="#ffffff" stroke-width="2" opacity="0.8"/>
-                                          
-                                    <!-- Bowling Crease (Base of stumps) -->
-                                    <line [attr.x1]="drsPitchCenter() - 35" [attr.y1]="150" 
-                                          [attr.x2]="drsPitchCenter() + 35" [attr.y2]="150" 
-                                          stroke="#ffffff" stroke-width="3" opacity="0.9"/>
+
 
                                     <!-- Smoothed Ball Trajectory (Pre-impact: Red-orange glow like broadcast) -->
                                     <path *ngIf="aiSmoothedPath().length > 1 && (reviewState() === 'ball_projection_animation' || reviewState() === 'decision_reveal')"

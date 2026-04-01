@@ -264,10 +264,10 @@ export class ControllerPage implements OnInit, AfterViewInit, OnDestroy {
       sW = Math.max(20, sW); // Minimum pixel width
     }
     
-    // Broadcast pitch dimensions (perspective trapezoid)
-    // The Hawk-Eye blue band should be a trapezoid projecting backwards
-    const topWidth = 120; // fixed pixels at top
-    const bottomWidth = 500; // wide at bottom
+    // Broadcast pitch dimensions (narrow straight lane style)
+    // Scaled based on stump width, slightly flared at the bottom for gentle perspective
+    const topWidth = Math.max(80, sW * 1.5);
+    const bottomWidth = topWidth * 1.8;
 
     // Apply manual offset if user needs it
     const off = this.pitchOffset();
