@@ -1,7 +1,7 @@
 <ion-content class="bg-[#1c2129] text-white font-sans overflow-hidden">
   <div class="h-screen flex flex-col bg-[#1c2129] overflow-hidden select-none">
     
-    <!-- OBS Title Bar -->
+    <!-- FSC Title Bar -->
     <header class="h-8 bg-[#2d333d] border-b border-black/40 flex items-center justify-between px-3 shrink-0">
       <div class="flex items-center gap-2">
         <ion-icon name="settings-outline" class="text-white/60 text-sm"></ion-icon>
@@ -13,7 +13,7 @@
     </header>
 
     <div class="flex-1 flex overflow-hidden">
-      <!-- OBS Sidebar -->
+      <!-- FSC Sidebar -->
       <aside class="w-44 bg-[#14171d] border-r border-black/40 py-2 shrink-0 flex flex-col">
         <nav class="flex-1 px-1.5 space-y-0.5 overflow-y-auto">
           <button *ngFor="let tab of [
@@ -165,7 +165,7 @@
 
         </div>
 
-        <!-- OBS Bottom Bar -->
+        <!-- FSC Bottom Bar -->
         <footer class="h-10 bg-[#2d333d] border-t border-black/40 flex items-center justify-end px-3 gap-2 shrink-0">
           <button (click)="save()" class="px-5 py-0.5 bg-[#3b82f6] text-white text-[11px] font-medium rounded-[2px] transition-all hover:bg-blue-500 active:scale-95 shadow-sm">OK</button>
           <button (click)="close()" class="px-5 py-0.5 bg-[#4a5568] text-white text-[11px] font-medium rounded-[2px] transition-all hover:bg-slate-600 active:scale-95 shadow-sm">Cancel</button>

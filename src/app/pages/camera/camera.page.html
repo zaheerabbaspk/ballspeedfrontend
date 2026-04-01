@@ -8,7 +8,7 @@
       <div class="w-16 h-16 bg-rose-600/20 rounded-3xl flex items-center justify-center mb-4 border border-rose-500/30">
         <ion-icon name="videocam" class="text-3xl text-rose-500"></ion-icon>
       </div>
-      <h1 class="text-2xl font-black italic tracking-widest text-white">OBS <span class="text-rose-500">MOBILE</span></h1>
+      <h1 class="text-2xl font-black italic tracking-widest text-white">FSC <span class="text-rose-500">MOBILE</span></h1>
       <p class="text-[10px] text-white/50 font-bold uppercase tracking-[0.2em] mt-2">Remote Camera Source</p>
     </div>
     
@@ -63,6 +63,13 @@
     <div class="absolute inset-x-8 top-24 bottom-12 flex justify-between items-end opacity-30 pointer-events-none">
       <div class="w-6 h-6 border-b-2 border-l-2 border-white"></div>
       <div class="w-6 h-6 border-b-2 border-r-2 border-white"></div>
+    </div>
+
+    <!-- Zoom Control HUD -->
+    <div *ngIf="zoomSupported()" class="absolute bottom-6 left-12 right-12 flex items-center gap-4 pointer-events-auto bg-slate-950/60 backdrop-blur-md border border-white/10 px-5 py-3 rounded-full shadow-2xl">
+      <ion-icon name="remove-outline" class="text-white/80 bg-white/10 rounded-full p-1 text-xl"></ion-icon>
+      <input type="range" class="flex-1 w-full appearance-none bg-white/20 h-1.5 rounded-full outline-none accent-rose-500" [min]="zoomMin()" [max]="zoomMax()" [step]="zoomStep()" [value]="zoomValue()" (input)="onZoomChange($event)">
+      <ion-icon name="add-outline" class="text-white/80 bg-white/10 rounded-full p-1 text-xl"></ion-icon>
     </div>
   </div>
 </ion-content>

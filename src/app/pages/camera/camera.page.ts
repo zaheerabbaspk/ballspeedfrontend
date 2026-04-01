@@ -4,7 +4,7 @@ import { IonContent, IonHeader, IonToolbar, IonTitle, IonButton, IonIcon, IonBad
 import { StreamingService } from '../../services/streaming.service';
 import { ActivatedRoute } from '@angular/router';
 import { addIcons } from 'ionicons';
-import { videocam, radioButtonOn, closeOutline, refreshOutline, warningOutline } from 'ionicons/icons';
+import { videocam, radioButtonOn, closeOutline, refreshOutline, warningOutline, removeOutline, addOutline } from 'ionicons/icons';
 
 @Component({
   selector: 'app-camera',
@@ -24,13 +24,21 @@ export class CameraPage implements OnInit {
   devices = signal<MediaDeviceInfo[]>([]);
   selectedDeviceId = signal<string | null>(null);
   isNotReadable = signal<boolean>(false);
+  
+  zoomSupported = signal<boolean>(false);
+  zoomMin = signal<number>(1);
+  zoomMax = signal<number>(5);
+  zoomStep = signal<number>(0.1);
+  zoomValue = signal<number>(1);
+  private videoTrack: MediaStreamTrack | null = null;
+
   private roomId: string | null = null;
 
   constructor(
     private streamingService: StreamingService,
     private route: ActivatedRoute
   ) {
-    addIcons({ videocam, 'radio-button-on': radioButtonOn, closeOutline, refreshOutline, warningOutline });
+    addIcons({ videocam, 'radio-button-on': radioButtonOn, closeOutline, refreshOutline, warningOutline, removeOutline, addOutline });
   }
 
   async ngOnInit() {
@@ -65,6 +73,7 @@ export class CameraPage implements OnInit {
         if (this.localVideo) {
           this.localVideo.nativeElement.srcObject = stream;
         }
+        this.setupZoomSupport(stream);
       } catch (err: any) {
         console.error('[CameraPage] Service stream failed:', err);
         if (err.name === 'NotAllowedError') {
@@ -76,6 +85,7 @@ export class CameraPage implements OnInit {
           if (this.localVideo) {
             this.localVideo.nativeElement.srcObject = stream;
           }
+          this.setupZoomSupport(stream);
         } else if (err.name === 'NotReadableError') {
           console.warn('[CameraPage] Device in use (NotReadableError)');
           this.isNotReadable.set(true);
@@ -108,12 +118,42 @@ export class CameraPage implements OnInit {
       if (this.localVideo) {
         this.localVideo.nativeElement.srcObject = stream;
       }
+      this.setupZoomSupport(stream);
       this.isStreaming = true;
       this.status = 'Basic Stream (No HD)';
       this.errorName.set(null);
     } catch (err: any) {
       console.error('Basic mode failed:', err);
       this.status = 'Even Basic Mode failed: ' + err.name;
+    }
+  }
+
+  setupZoomSupport(stream: MediaStream) {
+    const track = stream.getVideoTracks()[0];
+    if (track) {
+      this.videoTrack = track;
+      const capabilities = typeof track.getCapabilities === 'function' ? track.getCapabilities() : {} as MediaTrackCapabilities;
+      if (capabilities && 'zoom' in capabilities && (capabilities as any).zoom) {
+        this.zoomSupported.set(true);
+        const zoomCaps = (capabilities as any).zoom;
+        this.zoomMin.set(zoomCaps.min || 1);
+        this.zoomMax.set(zoomCaps.max || 5);
+        this.zoomStep.set(zoomCaps.step || 0.1);
+        const settings = typeof track.getSettings === 'function' ? track.getSettings() : {} as MediaTrackSettings;
+        this.zoomValue.set((settings as any).zoom || zoomCaps.min || 1);
+      } else {
+        this.zoomSupported.set(false);
+      }
+    }
+  }
+
+  onZoomChange(event: Event) {
+    const value = parseFloat((event.target as HTMLInputElement).value);
+    this.zoomValue.set(value);
+    if (this.videoTrack) {
+      this.videoTrack.applyConstraints({
+         advanced: [{ zoom: value }]
+      } as any).catch(err => console.error('Error applying zoom:', err));
     }
   }
 

@@ -17,7 +17,7 @@
                 </div>
             </div>
             <div class="text-[10px] text-[#909090] font-mono pr-4">
-                OBS Studio 32.0.4 - Profile: Untitled - Scenes: Untitled
+                FSC Studio 32.0.4 - Profile: Untitled - Scenes: Untitled
             </div>
         </header>
 
@@ -29,54 +29,59 @@
                 [class.gap-2]="isStudioMode()" [class.justify-center]="!isStudioMode()">
 
                 <!-- PREVIEW MONITOR -->
-                <div *ngIf="isStudioMode()" class="flex-1 flex flex-col bg-[#16171b] border border-[#bf913b]/20 relative shadow-inner overflow-hidden">
-                    <div class="bg-[#0a0a0a] px-2 py-0.5 flex justify-between items-center h-7 border-b border-[#bf913b]/40">
-                        <span class="text-[11px] font-bold text-[#bf913b] uppercase tracking-wider">Preview Monitor</span>
+                <div *ngIf="isStudioMode()"
+                    class="flex-1 flex flex-col bg-[#16171b] border border-[#bf913b]/20 relative shadow-inner overflow-hidden">
+                    <div
+                        class="bg-[#0a0a0a] px-2 py-0.5 flex justify-between items-center h-7 border-b border-[#bf913b]/40">
+                        <span class="text-[11px] font-bold text-[#bf913b] uppercase tracking-wider">Preview
+                            Monitor</span>
                     </div>
                     <div class="flex-1 flex items-center justify-center bg-black relative">
                         <!-- LIVE VIDEO -->
-                        <video #previewVideo *ngIf="previewCameraId() !== 'MEDIA'" [srcObject]="previewStream()" autoplay playsinline
-                            muted class="w-full h-full object-contain pointer-events-none"
+                        <video #previewVideo *ngIf="previewCameraId() !== 'MEDIA'" [srcObject]="previewStream()"
+                            autoplay playsinline muted class="w-full h-full object-contain pointer-events-none"
                             [class.hidden]="isReplaying() || isReviewMode()"></video>
-                            
+
                         <!-- LIVE TRACKING OVERLAY (STUDIO PREVIEW) -->
-                        <div *ngIf="isStudioMode() && isLiveTrackingActive()" class="absolute inset-0 z-30 pointer-events-none">
-                            <svg class="absolute inset-0 w-full h-full drop-shadow-md" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+                        <div *ngIf="isStudioMode() && isLiveTrackingActive()"
+                            class="absolute inset-0 z-30 pointer-events-none">
+                            <svg class="absolute inset-0 w-full h-full drop-shadow-md" viewBox="0 0 1280 720"
+                                preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
                                 <defs>
                                     <filter id="liveBallGlowPreview">
-                                        <feGaussianBlur stdDeviation="3" result="blur"/>
-                                        <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                                        <feGaussianBlur stdDeviation="3" result="blur" />
+                                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
                                     </filter>
                                 </defs>
-                                <path *ngIf="liveTrackingTrail().length > 1"
-                                      [attr.d]="liveCometPathD()" fill="none" class="opacity-60"
-                                      stroke="#ef4444" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
-                                      filter="url(#liveBallGlowPreview)"/>
+                                <path *ngIf="liveTrackingTrail().length > 1" [attr.d]="liveCometPathD()" fill="none"
+                                    class="opacity-60" stroke="#ef4444" stroke-width="4" stroke-linecap="round"
+                                    stroke-linejoin="round" filter="url(#liveBallGlowPreview)" />
                                 <circle *ngIf="liveTrackingTrail().length > 0"
-                                        [attr.cx]="liveTrackingTrail()[liveTrackingTrail().length-1].x * 12.8"
-                                        [attr.cy]="liveTrackingTrail()[liveTrackingTrail().length-1].y * 7.2"
-                                        r="6" fill="#ef4444" stroke="#ffffff" stroke-width="2" class="opacity-80"
-                                        filter="url(#liveBallGlowPreview)"/>
+                                    [attr.cx]="liveTrackingTrail()[liveTrackingTrail().length-1].x * 12.8"
+                                    [attr.cy]="liveTrackingTrail()[liveTrackingTrail().length-1].y * 7.2" r="6"
+                                    fill="#ef4444" stroke="#ffffff" stroke-width="2" class="opacity-80"
+                                    filter="url(#liveBallGlowPreview)" />
                             </svg>
                         </div>
 
                         <!-- ===== MANUAL DRS PITCH GRAPH OVERLAY (LIVE PREVIEW) ===== -->
-                        <div *ngIf="isDRSGraphVisible()" class="absolute inset-0 z-20 pointer-events-none transition-opacity duration-1000">
-                            <svg class="absolute inset-0 w-full h-full drop-shadow-2xl" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+                        <div *ngIf="isDRSGraphVisible()"
+                            class="absolute inset-0 z-20 pointer-events-none transition-opacity duration-1000">
+                            <svg class="absolute inset-0 w-full h-full drop-shadow-2xl" viewBox="0 0 1280 720"
+                                preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
                                 <defs>
                                     <linearGradient id="livePreviewPitchGrad" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stop-color="#2a2d4f" stop-opacity="0.6"/>
-                                        <stop offset="100%" stop-color="#343b67" stop-opacity="0.8"/>
+                                        <stop offset="0%" stop-color="#2a2d4f" stop-opacity="0.6" />
+                                        <stop offset="100%" stop-color="#343b67" stop-opacity="0.8" />
                                     </linearGradient>
                                 </defs>
 
                                 <!-- Main Broadcast Pitch Layer -->
-                                <polygon [attr.points]="drsPitchPoints()"
-                                         fill="url(#livePreviewPitchGrad)"
-                                         style="mix-blend-mode: normal; opacity: 0.9;"/>
+                                <polygon [attr.points]="drsPitchPoints()" fill="url(#livePreviewPitchGrad)"
+                                    style="mix-blend-mode: normal; opacity: 0.9;" />
                             </svg>
                         </div>
-                        
+
                         <div *ngIf="!previewCameraId() && previewCameraId() !== 'MEDIA'"
                             class="text-[#2d2e34] font-black uppercase text-4xl select-none">
                         </div>
@@ -93,10 +98,8 @@
                         <!-- Seek Slider -->
                         <div class="drs-seek-row">
                             <span class="drs-time-label">SEEK</span>
-                            <input type="range" min="0" max="100" step="0.1"
-                                   [value]="drsSeekValue()"
-                                   (input)="onDrsSeek($event)"
-                                   class="drs-seek-slider flex-1"/>
+                            <input type="range" min="0" max="100" step="0.1" [value]="drsSeekValue()"
+                                (input)="onDrsSeek($event)" class="drs-seek-slider flex-1" />
                         </div>
 
                         <!-- Controls Row -->
@@ -109,16 +112,16 @@
 
                             <!-- Frame Step -->
                             <button (click)="stepDrsFrame(-1)" class="drs-btn" title="Back 1 frame">⏮</button>
-                            <button (click)="stepDrsFrame(1)"  class="drs-btn" title="Fwd 1 frame">⏭</button>
+                            <button (click)="stepDrsFrame(1)" class="drs-btn" title="Fwd 1 frame">⏭</button>
 
                             <!-- Speed Buttons -->
                             <span class="drs-section-label">SPEED</span>
-                            <button (click)="setPlaybackSpeed(0.25)"
-                                    class="drs-btn" [class.drs-btn-active]="drsPlaybackRate() === 0.25">¼×</button>
-                            <button (click)="setPlaybackSpeed(0.5)"
-                                    class="drs-btn" [class.drs-btn-active]="drsPlaybackRate() === 0.5">½×</button>
-                            <button (click)="setPlaybackSpeed(1)"
-                                    class="drs-btn" [class.drs-btn-active]="drsPlaybackRate() === 1">1×</button>
+                            <button (click)="setPlaybackSpeed(0.25)" class="drs-btn"
+                                [class.drs-btn-active]="drsPlaybackRate() === 0.25">¼×</button>
+                            <button (click)="setPlaybackSpeed(0.5)" class="drs-btn"
+                                [class.drs-btn-active]="drsPlaybackRate() === 0.5">½×</button>
+                            <button (click)="setPlaybackSpeed(1)" class="drs-btn"
+                                [class.drs-btn-active]="drsPlaybackRate() === 1">1×</button>
 
                             <div class="drs-divider"></div>
 
@@ -128,9 +131,8 @@
                             </button>
 
                             <!-- Show DRS Graph -->
-                            <button (click)="toggleDrsGraph()"
-                                    class="drs-btn drs-btn-graph"
-                                    [class.drs-btn-graph-active]="isDRSGraphVisible()">
+                            <button (click)="toggleDrsGraph()" class="drs-btn drs-btn-graph"
+                                [class.drs-btn-graph-active]="isDRSGraphVisible()">
                                 {{ isDRSGraphVisible() ? '📊 HIDE GRAPH' : '📊 SHOW DRS GRAPH' }}
                             </button>
 
@@ -148,24 +150,28 @@
                         <button class="obs-btn bg-[#404144] w-6 py-1.5 text-center font-black">⋮</button>
                     </div>
                     <div class="flex items-center gap-1 mt-2">
-                        <span class="text-[9px] font-bold text-[#909090] uppercase tracking-tighter grow">Quick Transitions</span>
+                        <span class="text-[9px] font-bold text-[#909090] uppercase tracking-tighter grow">Quick
+                            Transitions</span>
                     </div>
                     <div class="flex flex-col gap-1 mt-1">
-                        <button (click)="takeLive()" class="obs-btn bg-[#4c4c4c] text-[10px] py-1 text-left px-3">Cut</button>
+                        <button (click)="takeLive()"
+                            class="obs-btn bg-[#4c4c4c] text-[10px] py-1 text-left px-3">Cut</button>
                         <button class="obs-btn bg-[#404144] text-[10px] py-1 text-left px-3">Fade (300ms)</button>
                     </div>
                 </div>
 
                 <!-- PROGRAM MONITOR -->
                 <div class="flex flex-col bg-[#16171b] border border-[#fbbf24]/30 relative shadow-2xl overflow-hidden transition-all duration-500"
-                    [class.flex-1]="isStudioMode()"
-                    [class.w-full]="!isStudioMode()"
+                    [class.flex-1]="isStudioMode()" [class.w-full]="!isStudioMode()"
                     [class.max-w-[960px]]="!isStudioMode()">
 
-                    <div class="bg-gradient-to-r from-[#0a0a0a] to-[#1a1a1a] px-2 py-0.5 flex justify-between items-center h-7 border-b border-[#fbbf24]/50">
-                        <span class="text-[11px] font-black text-[#fbbf24] uppercase tracking-wider">Program Monitor</span>
+                    <div
+                        class="bg-gradient-to-r from-[#0a0a0a] to-[#1a1a1a] px-2 py-0.5 flex justify-between items-center h-7 border-b border-[#fbbf24]/50">
+                        <span class="text-[11px] font-black text-[#fbbf24] uppercase tracking-wider">Program
+                            Monitor</span>
                         <div class="flex gap-2">
-                            <button (click)="toggleGrid()" class="text-[9px] bg-[#fbbf24]/10 hover:bg-[#fbbf24]/20 text-[#fbbf24] px-1.5 py-0.5 rounded border border-[#fbbf24]/20 transition-all uppercase font-bold">
+                            <button (click)="toggleGrid()"
+                                class="text-[9px] bg-[#fbbf24]/10 hover:bg-[#fbbf24]/20 text-[#fbbf24] px-1.5 py-0.5 rounded border border-[#fbbf24]/20 transition-all uppercase font-bold">
                                 Grid: {{ showGrid() ? 'ON' : 'OFF' }}
                             </button>
                         </div>
@@ -179,134 +185,125 @@
 
                         <!-- Hidden Video Source for Compositor -->
                         <video #mainVideo [srcObject]="activeStream()" autoplay playsinline muted
-                               class="absolute opacity-0 pointer-events-none w-px h-px"></video>
+                            class="absolute opacity-0 pointer-events-none w-px h-px"></video>
 
                         <!-- Hidden Replay Video -->
-                        <video #replayVideo class="absolute opacity-0 pointer-events-none w-px h-px" playsinline></video>
+                        <video #replayVideo class="absolute opacity-0 pointer-events-none w-px h-px"
+                            playsinline></video>
 
-                            <!-- ===== LIVE REAL-TIME TRACKING (RESULT) ===== -->
-                            <!-- Only show the result on the main frame if active = preview or we are not in tracking-only preview mode -->
-                            <div *ngIf="!isReviewMode() && isLiveTrackingActive() && (!isStudioMode() || activeCameraId() === previewCameraId())" class="absolute inset-0 z-15 pointer-events-none">
-                                <svg class="absolute inset-0 w-full h-full drop-shadow-lg" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-                                    <defs>
-                                        <filter id="liveBallGlow">
-                                            <feGaussianBlur stdDeviation="3" result="blur"/>
-                                            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-                                        </filter>
-                                    </defs>
-                                    
-                                    <!-- Comet Trail -->
-                                    <path *ngIf="liveTrackingTrail().length > 1"
-                                          [attr.d]="liveCometPathD()"
-                                          fill="none" stroke="#ef4444" stroke-width="4"
-                                          stroke-opacity="0.85"
-                                          stroke-linecap="round" stroke-linejoin="round"
-                                          filter="url(#liveBallGlow)"/>
-                                          
-                                    <!-- Leading Ball -->
-                                    <circle *ngIf="liveTrackingTrail().length > 0"
-                                            [attr.cx]="liveTrackingTrail()[liveTrackingTrail().length-1].x * 12.8"
-                                            [attr.cy]="liveTrackingTrail()[liveTrackingTrail().length-1].y * 7.2"
-                                            r="7" fill="#ef4444" stroke="#ffffff" stroke-width="2"
-                                            filter="url(#liveBallGlow)"/>
-                                </svg>
-                            </div>
+                        <!-- ===== LIVE REAL-TIME TRACKING (RESULT) ===== -->
+                        <!-- Only show the result on the main frame if active = preview or we are not in tracking-only preview mode -->
+                        <div *ngIf="!isReviewMode() && isLiveTrackingActive() && (!isStudioMode() || activeCameraId() === previewCameraId())"
+                            class="absolute inset-0 z-15 pointer-events-none">
+                            <svg class="absolute inset-0 w-full h-full drop-shadow-lg" viewBox="0 0 1280 720"
+                                preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <filter id="liveBallGlow">
+                                        <feGaussianBlur stdDeviation="3" result="blur" />
+                                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                                    </filter>
+                                </defs>
 
-                            <!-- ===== VIRTUAL PITCH OVERLAY (LIVE VIDEO BACKGROUND) ===== -->
-                            <div *ngIf="isDRSGraphVisible() || reviewState() === 'pitch_graph_reveal' || reviewState() === 'ball_projection_animation' || reviewState() === 'decision_reveal'"
-                                 class="absolute inset-0 z-20 transition-opacity duration-1000">
-                                 
-                                <svg class="absolute inset-0 w-full h-full drop-shadow-2xl" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-                                    <defs>
-                                        <!-- CWC19 Style translucent pitch band -->
-                                        <linearGradient id="broadcastPitchGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stop-color="#2a2d4f" stop-opacity="0.6"/>
-                                            <stop offset="100%" stop-color="#343b67" stop-opacity="0.8"/>
-                                        </linearGradient>
-                                        <filter id="ballGlow">
-                                            <feGaussianBlur stdDeviation="4" result="blur"/>
-                                            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-                                        </filter>
-                                        <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
-                                            <stop offset="0%" stop-color="#000" stop-opacity="0.6"/>
-                                            <stop offset="100%" stop-color="#000" stop-opacity="0"/>
-                                        </radialGradient>
-                                        <filter id="pitchShadow" x="-10%" y="-10%" width="120%" height="120%">
-                                            <feDropShadow dx="0" dy="10" stdDeviation="10" flood-opacity="0.5"/>
-                                        </filter>
-                                    </defs>
+                                <!-- Comet Trail -->
+                                <path *ngIf="liveTrackingTrail().length > 1" [attr.d]="liveCometPathD()" fill="none"
+                                    stroke="#ef4444" stroke-width="4" stroke-opacity="0.85" stroke-linecap="round"
+                                    stroke-linejoin="round" filter="url(#liveBallGlow)" />
 
-                                    <!-- Main Broadcast Pitch Layer -->
-                                    <polygon [attr.points]="drsPitchPoints()"
-                                             fill="url(#broadcastPitchGrad)"
-                                             style="mix-blend-mode: multiply;"/>
+                                <!-- Leading Ball -->
+                                <circle *ngIf="liveTrackingTrail().length > 0"
+                                    [attr.cx]="liveTrackingTrail()[liveTrackingTrail().length-1].x * 12.8"
+                                    [attr.cy]="liveTrackingTrail()[liveTrackingTrail().length-1].y * 7.2" r="7"
+                                    fill="#ef4444" stroke="#ffffff" stroke-width="2" filter="url(#liveBallGlow)" />
+                            </svg>
+                        </div>
 
+                        <!-- ===== VIRTUAL PITCH OVERLAY (LIVE VIDEO BACKGROUND) ===== -->
+                        <div *ngIf="isDRSGraphVisible() || reviewState() === 'pitch_graph_reveal' || reviewState() === 'ball_projection_animation' || reviewState() === 'decision_reveal'"
+                            class="absolute inset-0 z-20 transition-opacity duration-1000">
+
+                            <svg class="absolute inset-0 w-full h-full drop-shadow-2xl" viewBox="0 0 1280 720"
+                                preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <!-- CWC19 Style translucent pitch band -->
+                                    <linearGradient id="broadcastPitchGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#2a2d4f" stop-opacity="0.6" />
+                                        <stop offset="100%" stop-color="#343b67" stop-opacity="0.8" />
+                                    </linearGradient>
+                                    <filter id="ballGlow">
+                                        <feGaussianBlur stdDeviation="4" result="blur" />
+                                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                                    </filter>
+                                    <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
+                                        <stop offset="0%" stop-color="#000" stop-opacity="0.6" />
+                                        <stop offset="100%" stop-color="#000" stop-opacity="0" />
+                                    </radialGradient>
+                                    <filter id="pitchShadow" x="-10%" y="-10%" width="120%" height="120%">
+                                        <feDropShadow dx="0" dy="10" stdDeviation="10" flood-opacity="0.5" />
+                                    </filter>
+                                </defs>
+
+                                <!-- Main Broadcast Pitch Layer -->
+                                <polygon [attr.points]="drsPitchPoints()" fill="url(#broadcastPitchGrad)"
+                                    style="mix-blend-mode: multiply;" />
 
 
-                                    <!-- Smoothed Ball Trajectory (Pre-impact: Red-orange glow like broadcast) -->
-                                    <path *ngIf="aiSmoothedPath().length > 1 && (reviewState() === 'ball_projection_animation' || reviewState() === 'decision_reveal')"
-                                          [attr.d]="aiBallTrailD()"
-                                          fill="none" stroke="#ef4444" stroke-width="4"
-                                          stroke-linecap="round" stroke-linejoin="round"
-                                          filter="url(#ballGlow)"/>
 
-                                    <!-- Projected Path (Post-impact: Dashed Red/Yellow) -->
-                                    <path *ngIf="aiProjectedPath().length > 1 && (reviewState() === 'decision_reveal')"
-                                          [attr.d]="aiProjectedPathD()"
-                                          fill="none" stroke="#eab308" stroke-width="4"
-                                          stroke-dasharray="6,4" stroke-linecap="round"
-                                          filter="url(#ballGlow)"/>
+                                <!-- Smoothed Ball Trajectory (Pre-impact: Red-orange glow like broadcast) -->
+                                <path
+                                    *ngIf="aiSmoothedPath().length > 1 && (reviewState() === 'ball_projection_animation' || reviewState() === 'decision_reveal')"
+                                    [attr.d]="aiBallTrailD()" fill="none" stroke="#ef4444" stroke-width="4"
+                                    stroke-linecap="round" stroke-linejoin="round" filter="url(#ballGlow)" />
 
-                                    <!-- Bounce Point Marker (Dimmer in 3D mode) -->
-                                    <g *ngIf="bouncePoint()">
-                                        <ellipse [attr.cx]="bouncePoint()!.x * 12.8"
-                                                 [attr.cy]="bouncePoint()!.y * 7.2"
-                                                 rx="20" ry="6"
-                                                 fill="url(#shadowGrad)"/>
-                                        <circle [attr.cx]="bouncePoint()!.x * 12.8"
-                                                [attr.cy]="bouncePoint()!.y * 7.2"
-                                                r="7" fill="#f59e0b" stroke="#fff" stroke-width="1.5"/>
-                                    </g>
+                                <!-- Projected Path (Post-impact: Dashed Red/Yellow) -->
+                                <path *ngIf="aiProjectedPath().length > 1 && (reviewState() === 'decision_reveal')"
+                                    [attr.d]="aiProjectedPathD()" fill="none" stroke="#eab308" stroke-width="4"
+                                    stroke-dasharray="6,4" stroke-linecap="round" filter="url(#ballGlow)" />
 
-                                    <!-- Impact Point Marker -->
-                                    <g *ngIf="impactPoint()">
-                                        <circle [attr.cx]="impactPoint()!.x * 12.8"
-                                                [attr.cy]="impactPoint()!.y * 7.2"
-                                                r="14" fill="none" stroke="#3b82f6" stroke-width="3"
-                                                class="drs-impact-pulse"/>
-                                        <circle [attr.cx]="impactPoint()!.x * 12.8"
-                                                [attr.cy]="impactPoint()!.y * 7.2"
-                                                r="5" fill="#3b82f6"/>
-                                        <text [attr.x]="impactPoint()!.x * 12.8 - 45"
-                                              [attr.y]="impactPoint()!.y * 7.2"
-                                              fill="#fff" font-size="12" font-weight="900" font-family="'Inter', sans-serif"
-                                              style="text-shadow: 1px 1px 2px #000;">IMPACT</text>
-                                    </g>
+                                <!-- Bounce Point Marker (Dimmer in 3D mode) -->
+                                <g *ngIf="bouncePoint()">
+                                    <ellipse [attr.cx]="bouncePoint()!.x * 12.8" [attr.cy]="bouncePoint()!.y * 7.2"
+                                        rx="20" ry="6" fill="url(#shadowGrad)" />
+                                    <circle [attr.cx]="bouncePoint()!.x * 12.8" [attr.cy]="bouncePoint()!.y * 7.2" r="7"
+                                        fill="#f59e0b" stroke="#fff" stroke-width="1.5" />
+                                </g>
 
-                                    <!-- Animated Ball Dot (Red core, white glow) -->
-                                    <g *ngIf="drsBallPos() && isDRSAnimating()">
-                                        <!-- Ball floor shadow (stays on floor logic: fixed Y offset approx) -->
-                                        <ellipse [attr.cx]="drsBallPos()!.x * 12.8"
-                                                 [attr.cy]="drsBallPos()!.y * 7.2 + yCoordinateShadowOffset(drsBallPos()!.y * 7.2)"
-                                                 rx="16" ry="5"
-                                                 fill="url(#shadowGrad)"/>
-                                        <circle [attr.cx]="drsBallPos()!.x * 12.8"
-                                                [attr.cy]="drsBallPos()!.y * 7.2"
-                                                r="8" fill="#ef4444" stroke="#fff" stroke-width="1.5"
-                                                filter="url(#ballGlow)"/>
-                                    </g>
+                                <!-- Impact Point Marker -->
+                                <g *ngIf="impactPoint()">
+                                    <circle [attr.cx]="impactPoint()!.x * 12.8" [attr.cy]="impactPoint()!.y * 7.2"
+                                        r="14" fill="none" stroke="#3b82f6" stroke-width="3" class="drs-impact-pulse" />
+                                    <circle [attr.cx]="impactPoint()!.x * 12.8" [attr.cy]="impactPoint()!.y * 7.2" r="5"
+                                        fill="#3b82f6" />
+                                    <text [attr.x]="impactPoint()!.x * 12.8 - 45" [attr.y]="impactPoint()!.y * 7.2"
+                                        fill="#fff" font-size="12" font-weight="900" font-family="'Inter', sans-serif"
+                                        style="text-shadow: 1px 1px 2px #000;">IMPACT</text>
+                                </g>
 
-                                    <!-- 3D Stumps Rendering (Centered precisely) -->
-                                    <g *ngIf="reviewResults()">
-                                        <!-- Off, Middle, Leg Stumps -->
-                                        <rect [attr.x]="drsPitchCenter() - 12" y="90" width="5" height="60" fill="#eab308" rx="1"/>
-                                        <rect [attr.x]="drsPitchCenter() - 2.5" y="90" width="5" height="60" fill="#eab308" rx="1"/>
-                                        <rect [attr.x]="drsPitchCenter() + 7" y="90" width="5" height="60" fill="#eab308" rx="1"/>
-                                        <!-- Bails -->
-                                        <rect [attr.x]="drsPitchCenter() - 13" y="88" width="12" height="3" fill="#ca8a04" rx="1"/>
-                                        <rect [attr.x]="drsPitchCenter() + 1" y="88" width="12" height="3" fill="#ca8a04" rx="1"/>
-                                    </g>
-                                </svg>
+                                <!-- Animated Ball Dot (Red core, white glow) -->
+                                <g *ngIf="drsBallPos() && isDRSAnimating()">
+                                    <!-- Ball floor shadow (stays on floor logic: fixed Y offset approx) -->
+                                    <ellipse [attr.cx]="drsBallPos()!.x * 12.8"
+                                        [attr.cy]="drsBallPos()!.y * 7.2 + yCoordinateShadowOffset(drsBallPos()!.y * 7.2)"
+                                        rx="16" ry="5" fill="url(#shadowGrad)" />
+                                    <circle [attr.cx]="drsBallPos()!.x * 12.8" [attr.cy]="drsBallPos()!.y * 7.2" r="8"
+                                        fill="#ef4444" stroke="#fff" stroke-width="1.5" filter="url(#ballGlow)" />
+                                </g>
+
+                                <!-- 3D Stumps Rendering (Centered precisely) -->
+                                <g *ngIf="reviewResults()">
+                                    <!-- Off, Middle, Leg Stumps -->
+                                    <rect [attr.x]="drsPitchCenter() - 12" y="90" width="5" height="60" fill="#eab308"
+                                        rx="1" />
+                                    <rect [attr.x]="drsPitchCenter() - 2.5" y="90" width="5" height="60" fill="#eab308"
+                                        rx="1" />
+                                    <rect [attr.x]="drsPitchCenter() + 7" y="90" width="5" height="60" fill="#eab308"
+                                        rx="1" />
+                                    <!-- Bails -->
+                                    <rect [attr.x]="drsPitchCenter() - 13" y="88" width="12" height="3" fill="#ca8a04"
+                                        rx="1" />
+                                    <rect [attr.x]="drsPitchCenter() + 1" y="88" width="12" height="3" fill="#ca8a04"
+                                        rx="1" />
+                                </g>
+                            </svg>
 
                             <!-- CWC19 STYLE LBW DECISION BADGES -->
                             <div *ngIf="reviewState() === 'decision_reveal'" class="drs-decision-panel">
@@ -315,7 +312,7 @@
                                 <div class="cwc-badge" [class.visible]="reviewStep() >= 1">
                                     <div class="cwc-label">PITCHING</div>
                                     <div class="cwc-value" [class.in-line]="reviewResults()?.pitching?.includes('IN')"
-                                         [class.outside]="!reviewResults()?.pitching?.includes('IN')">
+                                        [class.outside]="!reviewResults()?.pitching?.includes('IN')">
                                         {{ reviewResults()?.pitching || '—' }}
                                     </div>
                                 </div>
@@ -324,7 +321,7 @@
                                 <div class="cwc-badge" [class.visible]="reviewStep() >= 2">
                                     <div class="cwc-label">IMPACT</div>
                                     <div class="cwc-value" [class.in-line]="reviewResults()?.impact?.includes('IN')"
-                                         [class.outside]="!reviewResults()?.impact?.includes('IN')">
+                                        [class.outside]="!reviewResults()?.impact?.includes('IN')">
                                         {{ reviewResults()?.impact || '—' }}
                                     </div>
                                 </div>
@@ -333,7 +330,7 @@
                                 <div class="cwc-badge" [class.visible]="reviewStep() >= 3">
                                     <div class="cwc-label">WICKETS</div>
                                     <div class="cwc-value" [class.hitting]="reviewResults()?.wickets === 'HITTING'"
-                                         [class.missing]="reviewResults()?.wickets !== 'HITTING'">
+                                        [class.missing]="reviewResults()?.wickets !== 'HITTING'">
                                         {{ reviewResults()?.wickets || '—' }}
                                     </div>
                                 </div>
@@ -342,7 +339,7 @@
                                 <div *ngIf="reviewStep() >= 3" class="cwc-final-badge">
                                     <div class="cwc-label text-red-600">ORIGINAL DECISION</div>
                                     <div class="cwc-value text-[14px]" [class.out]="reviewResults()?.decision === 'OUT'"
-                                         [class.not-out]="reviewResults()?.decision === 'NOT OUT'">
+                                        [class.not-out]="reviewResults()?.decision === 'NOT OUT'">
                                         {{ reviewResults()?.decision || '—' }}
                                     </div>
                                 </div>
@@ -357,37 +354,34 @@
 
                         <!-- Interactive Transform Layer -->
                         <div class="absolute inset-0 z-30 cursor-crosshair overflow-hidden"
-                             (pointerdown)="selectOverlay(null, $event)"
-                             (pointermove)="onMediaPointerMove($event)"
-                             (pointerup)="onMediaPointerUp($event)"
-                             (pointerleave)="onMediaPointerUp($event)">
+                            (pointerdown)="selectOverlay(null, $event)" (pointermove)="onMediaPointerMove($event)"
+                            (pointerup)="onMediaPointerUp($event)" (pointerleave)="onMediaPointerUp($event)">
 
                             <!-- Alignment Grid -->
                             <div *ngIf="showGrid()" class="absolute inset-0 pointer-events-none opacity-20"
-                                 style="background-image: linear-gradient(to right, #fbbf24 1px, transparent 1px), linear-gradient(to bottom, #fbbf24 1px, transparent 1px); background-size: 10% 10%;">
+                                style="background-image: linear-gradient(to right, #fbbf24 1px, transparent 1px), linear-gradient(to bottom, #fbbf24 1px, transparent 1px); background-size: 10% 10%;">
                             </div>
 
                             <!-- Interactive Overlays -->
                             <ng-container *ngFor="let overlay of mediaOverlays()">
                                 <div *ngIf="overlay.isVisible"
-                                     class="absolute border-2 transition-all cursor-move group/box"
-                                     [class.border-transparent]="selectedOverlayId() !== overlay.id"
-                                     [class.border-[#fbbf24]]="selectedOverlayId() === overlay.id"
-                                     [class.border-dashed]="selectedOverlayId() === overlay.id"
-                                     (pointerdown)="onMediaPointerDown(overlay.id, $event, 'MEDIA', 'DRAGGING')"
-                                     [style.left.%]="(overlay.x / 1280) * 100"
-                                     [style.top.%]="(overlay.y / 720) * 100"
-                                     [style.width.%]="((overlay.type === 'image' ? overlay.width : 1280) * (overlay.scale || 1.0) / 1280) * 100"
-                                     [style.height.%]="((overlay.type === 'image' ? overlay.height : 720) * (overlay.scale || 1.0) / 720) * 100">
+                                    class="absolute border-2 transition-all cursor-move group/box"
+                                    [class.border-transparent]="selectedOverlayId() !== overlay.id"
+                                    [class.border-[#fbbf24]]="selectedOverlayId() === overlay.id"
+                                    [class.border-dashed]="selectedOverlayId() === overlay.id"
+                                    (pointerdown)="onMediaPointerDown(overlay.id, $event, 'MEDIA', 'DRAGGING')"
+                                    [style.left.%]="(overlay.x / 1280) * 100" [style.top.%]="(overlay.y / 720) * 100"
+                                    [style.width.%]="((overlay.type === 'image' ? overlay.width : 1280) * (overlay.scale || 1.0) / 1280) * 100"
+                                    [style.height.%]="((overlay.type === 'image' ? overlay.height : 720) * (overlay.scale || 1.0) / 720) * 100">
 
                                     <div *ngIf="selectedOverlayId() === overlay.id"
-                                         class="absolute -top-5 left-0 bg-[#fbbf24] text-black text-[8px] font-black px-1.5 py-0.5 rounded-t tracking-tighter uppercase whitespace-nowrap shadow-xl">
+                                        class="absolute -top-5 left-0 bg-[#fbbf24] text-black text-[8px] font-black px-1.5 py-0.5 rounded-t tracking-tighter uppercase whitespace-nowrap shadow-xl">
                                         {{overlay.name}} [{{(overlay.scale || 1).toFixed(2)}}x]
                                     </div>
 
                                     <div *ngIf="selectedOverlayId() === overlay.id"
-                                         class="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-[#fbbf24] border border-black cursor-nwse-resize shadow-lg z-40"
-                                         (pointerdown)="onMediaPointerDown(overlay.id, $event, 'MEDIA', 'RESIZING')">
+                                        class="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-[#fbbf24] border border-black cursor-nwse-resize shadow-lg z-40"
+                                        (pointerdown)="onMediaPointerDown(overlay.id, $event, 'MEDIA', 'RESIZING')">
                                     </div>
                                 </div>
                             </ng-container>
@@ -408,18 +402,19 @@
             </div>
 
             <!-- Mid Controls Bar -->
-            <div class="h-9 bg-[#0a0a0a] border-y border-[#bf913b]/30 my-0.5 flex items-center px-4 justify-between select-none shrink-0">
+            <div
+                class="h-9 bg-[#0a0a0a] border-y border-[#bf913b]/30 my-0.5 flex items-center px-4 justify-between select-none shrink-0">
                 <div class="text-[11px] text-[#e0e0e0] font-medium opacity-80">
                     {{ previewCameraId() ? 'Source: ' + previewCameraId() : 'No source selected' }}
                 </div>
                 <div class="flex gap-1">
                     <button (click)="openSettings()"
-                        class="bg-[#2d2e34] hover:bg-[#404144] border border-[#111] px-3 py-1 rounded-sm text-[11px] flex items-center gap-1.5 transition-colors">
+                        class="!bg-slate-700 hover:bg-slate-600 border border-white/5 px-3 py-1 rounded-sm text-[11px] font-bold !text-white flex items-center gap-1.5 transition-colors shadow-sm">
                         <span class="text-[12px] opacity-60">⚙️</span>
                         <span>Properties</span>
                     </button>
                     <button (click)="triggerMediaFileSelect()"
-                        class="bg-[#2d2e34] hover:bg-[#404144] border border-[#111] px-3 py-1 rounded-sm text-[11px] flex items-center gap-1.5 transition-colors">
+                        class="!bg-slate-700 hover:bg-slate-600 border border-white/5 px-3 py-1 rounded-sm text-[11px] font-bold !text-white flex items-center gap-1.5 transition-colors shadow-sm">
                         <span class="text-[12px] opacity-60">📁</span>
                         <span>Filters</span>
                     </button>
@@ -433,14 +428,16 @@
                 <!-- 1. CONNECTED CAMERAS DOCK -->
                 <app-obs-dock title="Connected Cameras" class="w-1/3" (action)="handleSourceAction($event)">
                     <div class="flex flex-col select-none">
-                        <div class="px-2 py-1 bg-[#0a0a0a] text-[9px] font-black text-[#bf913b] uppercase border-b border-[#bf913b]/20 tracking-widest">
+                        <div
+                            class="px-2 py-1 bg-[#0a0a0a] text-[9px] font-black text-[#bf913b] uppercase border-b border-[#bf913b]/20 tracking-widest">
                             PRODUCTION FEED</div>
 
                         <div *ngFor="let source of obsSources()" (click)="switchCamera(source.id)"
                             class="px-4 py-2.5 text-[13px] flex items-center justify-between group border-b border-white/5 transition-all cursor-pointer hover:bg-white/5"
                             [class.bg-[#bf913b]]="source.isActive">
                             <div class="flex items-center gap-3.5">
-                                <span class="text-[14px] opacity-100 text-[#fbbf24] drop-shadow-sm">{{ source.type === 'camera' ? '📹' : '🎞️' }}</span>
+                                <span class="text-[14px] opacity-100 text-[#fbbf24] drop-shadow-sm">{{ source.type ===
+                                    'camera' ? '📹' : '🎞️' }}</span>
                                 <span class="font-extrabold tracking-tight truncate max-w-[160px] text-[#fef3c7]"
                                     [class.!text-black]="source.isActive">{{ source.name }}</span>
                                 <span *ngIf="source.isActive"
@@ -489,7 +486,8 @@
                 <app-obs-dock title="Scene Transitions" class="w-1/5">
                     <div class="p-2 flex flex-col gap-2">
                         <div class="relative group">
-                            <select class="bg-[#2d2e34] border border-[#111] text-[11px] p-1 outline-none w-full text-white appearance-none pr-6">
+                            <select
+                                class="bg-[#2d2e34] border border-[#111] text-[11px] p-1 outline-none w-full text-white appearance-none pr-6">
                                 <option>Fade</option>
                                 <option>Cut</option>
                             </select>
@@ -498,7 +496,9 @@
                         <div class="flex flex-col gap-1 mt-1">
                             <span class="text-[9px] text-[#909090] font-bold">Duration</span>
                             <div class="flex items-center gap-1.5 h-6">
-                                <input type="number" class="w-full bg-[#2d2e34] border border-[#111] text-[11px] p-0.5 text-center text-white" value="300">
+                                <input type="number"
+                                    class="w-full bg-[#2d2e34] border border-[#111] text-[11px] p-0.5 text-center text-white"
+                                    value="300">
                                 <div class="flex flex-col gap-0.5">
                                     <button class="bg-[#404144] px-1 text-[6px]">▲</button>
                                     <button class="bg-[#404144] px-1 text-[6px]">▼</button>
@@ -515,11 +515,13 @@
 
                         <!-- Camera / Capture Card Selector -->
                         <div class="flex flex-col gap-1 mb-1 pb-1.5 border-b border-[#2d2e34]">
-                            <span class="text-[9px] text-[#bf913b] font-black uppercase tracking-wider">📷 Video Input</span>
-                            <select class="bg-[#2d2e34] border border-[#111] text-[10px] p-1 outline-none w-full text-white appearance-none"
-                                    [value]="selectedDeviceId()"
-                                    (change)="selectedDeviceId.set($any($event.target).value)">
-                                <option *ngFor="let dev of videoDevices()" [value]="dev.deviceId">{{ dev.label }}</option>
+                            <span class="text-[9px] text-[#bf913b] font-black uppercase tracking-wider">📷 Video
+                                Input</span>
+                            <select
+                                class="bg-[#2d2e34] border border-[#111] text-[10px] p-1 outline-none w-full text-white appearance-none"
+                                [value]="selectedDeviceId()" (change)="selectedDeviceId.set($any($event.target).value)">
+                                <option *ngFor="let dev of videoDevices()" [value]="dev.deviceId">{{ dev.label }}
+                                </option>
                                 <option *ngIf="videoDevices().length === 0" value="">No cameras found</option>
                             </select>
                             <div class="flex gap-1">
@@ -529,32 +531,35 @@
                                     {{ isConnectingCamera() ? '⏳ Connecting…' : '🔌 Connect' }}
                                 </button>
                                 <button (click)="loadVideoDevices()"
-                                    class="bg-[#404144] hover:bg-[#4e4f53] border border-[#111] px-2 py-1 text-[10px] rounded-sm" title="Refresh devices">🔄</button>
+                                    class="bg-[#404144] hover:bg-[#4e4f53] border border-[#111] px-2 py-1 text-[10px] rounded-sm"
+                                    title="Refresh devices">🔄</button>
                             </div>
                         </div>
 
                         <button (click)="copyInviteLink()"
-                            class="bg-[#bf913b] border border-[#111] hover:bg-[#d4af37] py-2 font-bold text-[11px] rounded-sm shadow-xl w-full text-black mb-1 transition-all active:scale-[0.98]">
+                            class="!bg-indigo-600 border border-indigo-500/30 hover:bg-indigo-500 py-2 font-bold text-[11px] rounded-sm shadow-xl w-full !text-white mb-1 transition-all active:scale-[0.98]">
                             🔗 Copy Camera Link
                         </button>
 
                         <div class="flex gap-1.5">
                             <button (click)="toggleRtmp()"
-                                class="bg-[#2d2e34] border border-[#111] hover:bg-[#404144] py-1.5 font-medium text-[11px] flex-1 rounded-sm shadow-sm"
-                                [class.bg-rose-700]="isRtmpStreaming()">Start Streaming</button>
-                            <button class="bg-[#2d2e34] border border-[#111] hover:bg-[#404144] py-1.5 font-medium text-[11px] flex-1 rounded-sm shadow-sm">Manage Broadcast</button>
+                                class="!bg-blue-600 border border-blue-500/30 hover:bg-blue-500 py-1.5 font-bold text-[11px] flex-1 rounded-sm shadow-sm !text-white transition-all"
+                                [class.!bg-rose-700]="isRtmpStreaming()">Start Streaming</button>
+                            <button
+                                class="!bg-slate-600 border border-white/5 hover:bg-slate-500 py-1.5 font-bold text-[11px] flex-1 rounded-sm shadow-sm !text-white transition-all">Manage
+                                Broadcast</button>
                         </div>
 
                         <button (click)="toggleReplayRecording()"
-                            class="bg-[#2d2e34] border border-[#111] hover:bg-[#404144] py-1.5 font-medium text-[11px] rounded-sm shadow-sm w-full"
-                            [class.bg-emerald-700]="isRecordingReplay()">
+                            class="!bg-slate-700 border border-white/5 hover:bg-slate-600 py-1.5 font-bold text-[11px] rounded-sm shadow-sm w-full !text-white transition-all"
+                            [class.!bg-emerald-600]="isRecordingReplay()">
                             {{ isRecordingReplay() ? '🔴 Recording…' : 'Start Recording' }}
                         </button>
 
                         <!-- Instant Replay Button -->
                         <button (click)="triggerReplay(replayDuration())"
-                            class="bg-[#2d2e34] border border-[#111] hover:bg-[#404144] py-1.5 font-medium text-[11px] rounded-sm shadow-sm w-full transition-all"
-                            [class.bg-amber-700]="isReplaying()">
+                            class="!bg-amber-600 border border-amber-500/30 hover:bg-amber-500 py-1.5 font-bold text-[11px] rounded-sm shadow-sm w-full transition-all !text-white"
+                            [class.!bg-orange-700]="isReplaying()">
                             {{ isReplaying() ? '⏹ Stop Replay' : '⏮ Instant Replay' }}
                         </button>
 
@@ -565,12 +570,11 @@
                         </button>
 
                         <button (click)="openSettings()"
-                            class="bg-[#2d2e34] border border-[#111] hover:bg-[#404144] py-1.5 font-medium text-[11px] rounded-sm shadow-sm w-full">Settings</button>
+                            class="!bg-slate-700 border border-white/5 hover:bg-slate-600 py-1.5 font-bold text-[11px] rounded-sm shadow-sm w-full !text-white transition-all">Settings</button>
 
                         <button (click)="toggleStudioMode()"
-                            class="border border-[#bf913b]/20 py-1.5 font-medium text-[11px] rounded-sm shadow-sm w-full transition-all"
-                            [class.bg-[#bf913b]]="isStudioMode()" [class.bg-[#0a0a0a]]="!isStudioMode()"
-                            [class.text-black]="isStudioMode()">
+                            class="!bg-indigo-900 border border-indigo-500/20 py-1.5 font-bold text-[11px] rounded-sm shadow-sm w-full transition-all !text-white"
+                            [class.!bg-indigo-600]="isStudioMode()">
                             Studio Mode
                         </button>
                     </div>
@@ -580,17 +584,20 @@
         </main>
 
         <!-- Status Bar Footer -->
-        <footer class="bg-[#0a0a0a] border-t border-[#bf913b]/30 h-7 flex items-center px-4 justify-between border-b-[3px] border-[#000]">
+        <footer
+            class="bg-[#0a0a0a] border-t border-[#bf913b]/30 h-7 flex items-center px-4 justify-between border-b-[3px] border-[#000]">
             <div class="flex items-center gap-8 text-[11px] font-bold font-mono">
                 <div class="flex items-center gap-1 text-[#909090]">
                     <span class="text-[12px] opacity-40">▊▊ı</span>
                     <span class="opacity-80">{{ currentTime() }}</span>
                 </div>
-                <div class="flex items-center gap-1.5" [class.text-rose-500]="isRtmpStreaming()" [class.text-slate-800]="!isRtmpStreaming()">
+                <div class="flex items-center gap-1.5" [class.text-rose-500]="isRtmpStreaming()"
+                    [class.text-slate-800]="!isRtmpStreaming()">
                     <span class="text-[12px]">●</span>
                     <span class="opacity-80">LIVE: 00:00:00</span>
                 </div>
-                <div class="flex items-center gap-1.5" [class.text-emerald-500]="isRecordingReplay()" [class.text-slate-800]="!isRecordingReplay()">
+                <div class="flex items-center gap-1.5" [class.text-emerald-500]="isRecordingReplay()"
+                    [class.text-slate-800]="!isRecordingReplay()">
                     <span class="text-[12px]">●</span>
                     <span class="opacity-80">REC: 00:00:00</span>
                 </div>
