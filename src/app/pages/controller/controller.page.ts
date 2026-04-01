@@ -30,6 +30,11 @@ interface ConnectedCamera {
   rotation: number;
 }
 
+interface VideoDevice {
+  deviceId: string;
+  label: string;
+}
+
 export type ReviewState =
   | 'idle'
   | 'analyzing'
@@ -39,6 +44,11 @@ export type ReviewState =
   | 'ball_projection_animation'
   | 'decision_reveal'
   | 'error';
+
+/** Module-level helper: compute current frame index from video element */
+function currentFrameFor(vid: HTMLVideoElement, fps: number): number {
+  return Math.floor(vid.currentTime * fps);
+}
 
 
 @Component({
@@ -179,14 +189,41 @@ export class ControllerPage implements OnInit, AfterViewInit, OnDestroy {
   showDebug = signal<boolean>(false);
   capturedImpactPhoto = signal<string | null>(null);
   capturedBouncePhoto = signal<string | null>(null);
+  // Video Device Selection
+  videoDevices = signal<VideoDevice[]>([]);
+  selectedDeviceId = signal<string>('');
+  isConnectingCamera = signal<boolean>(false);
+
+  // DRS Playback Controls
+  drsPlaybackRate = signal<number>(1);
+  drsIsPaused = signal<boolean>(false);
+  drsSeekValue = signal<number>(0);
+  drsSeekMax = signal<number>(100);
+  isDRSGraphVisible = signal<boolean>(false);
+  isAnalyzingFrame = signal<boolean>(false);
+  lockedFrameDataUrl = signal<string | null>(null);
+
   drsPlayCycle = signal<number>(0);
   freezeTriggered = signal<boolean>(false);
+  private rVfcId: number | null = null;
 
   // Studio Mode & Manual Controls
   isStudioMode = signal<boolean>(false);
   isPreviewPaused = signal<boolean>(false);
   pitchOffset = signal<{ x: number, y: number }>({ x: 0, y: 0 });
   isFullscreen = signal<boolean>(false);
+
+  // --- Real-Time Live Tracking via WebSocket ---
+  private liveWs: WebSocket | null = null;
+  liveTrackingTrail = signal<any[]>([]);
+  isLiveTrackingActive = signal<boolean>(false);
+  private liveTrackingInterval: any = null;
+
+  liveCometPathD = computed(() => {
+    const pts = this.liveTrackingTrail();
+    if (pts.length < 2) return '';
+    return this.toSvgBezierPath(pts);
+  });
 
   // Computed SVG Paths (Fixes Angular Template Parser Errors)
   manualPathD = computed(() => {
@@ -201,57 +238,61 @@ export class ControllerPage implements OnInit, AfterViewInit, OnDestroy {
     return `M ${x0} ${y0} Q ${x1} ${y1} ${x2} ${y2}`;
   });
 
-  // Computed: Mathematically smoothed tracked trajectory to eliminate raw YOLO multi-detection spiderweb effects
+  // Computed: SVG bezier path for smoothed ball trail
   aiBallTrailD = computed(() => {
     const pts = this.aiSmoothedPath();
     if (pts.length < 2) return '';
-    let d = `M ${pts[0].x * 12.8} ${pts[0].y * 7.2}`;
-    for (let i = 1; i < pts.length; i++) {
-      d += ` L ${pts[i].x * 12.8} ${pts[i].y * 7.2}`;
-    }
-    return d;
+    return this.toSvgBezierPath(pts);
   });
 
-  // Computed: Projected ball path SVG path (HawkEye Tube)
+  // Computed: SVG bezier path for projected (post-impact) path
   aiProjectedPathD = computed(() => {
     const pts = this.aiProjectedPath();
     if (pts.length < 2) return '';
-    let d = `M ${pts[0].x * 12.8} ${pts[0].y * 7.2}`;
-    for (let i = 1; i < pts.length; i++) {
-      d += ` L ${pts[i].x * 12.8} ${pts[i].y * 7.2}`;
-    }
-    return d;
+    return this.toSvgBezierPath(pts);
   });
 
-  // Computed: Dynamic 2D Pitch Lane (Perfectly straight vertical band like target screenshot)
+  // Computed: Dynamic 3D Pitch Lane (True Perspective Centered on Stumps)
+  // Computed: Dynamic 3D Pitch Lane (True Perspective Centered on Stumps)
   drsPitchPoints = computed(() => {
     const res = this.reviewResults();
-    // Default to center if stump coordinates are somehow missing
-    const lX = res?.stumpLeftX !== undefined ? res.stumpLeftX : 48;
-    const rX = res?.stumpRightX !== undefined ? res.stumpRightX : 52;
-    const cX = (lX + rX) / 2;
+    let cx = 640; // Default center (1280/2)
+    let sW = 6;   // Default stump width approx
+    if (res && res.stumpLeftX !== undefined && res.stumpRightX !== undefined) {
+      cx = ((res.stumpLeftX + res.stumpRightX) / 2) * 12.8;
+      sW = (res.stumpRightX - res.stumpLeftX) * 12.8;
+      sW = Math.max(20, sW); // Minimum pixel width
+    }
+    
+    // Broadcast pitch dimensions (perspective trapezoid)
+    // The Hawk-Eye blue band should be a trapezoid projecting backwards
+    const topWidth = 120; // fixed pixels at top
+    const bottomWidth = 500; // wide at bottom
 
-    // Exact stump width
-    const sW = Math.max(2, rX - lX);
-    const topY = 150; // Base of stumps
-    const botY = 720; // Bottom of screen
-
-    // Perfect vertical rectangle like CWC19 broadcast
-    // Top and bottom width exactly match stump width
-    const rectW = sW;
-
-    // Manual Offset Application
+    // Apply manual offset if user needs it
     const off = this.pitchOffset();
-
-    // Convert to 1280x720 SVG space
-    const x1 = (cX - rectW / 2 + off.x) * 12.8, y1 = topY + off.y;
-    const x2 = (cX + rectW / 2 + off.x) * 12.8, y2 = topY + off.y;
-    const x3 = (cX + rectW / 2 + off.x) * 12.8, y3 = botY + off.y;
-    const x4 = (cX - rectW / 2 + off.x) * 12.8, y4 = botY + off.y;
-
-    return `${x1},${y1} ${x2},${y2} ${x3},${y3} ${x4},${y4}`;
+    const c = cx + off.x * 12.8;
+    const y1 = 150 + off.y;
+    const y2 = 720 + off.y;
+    
+    // Calculate 4 corners based on exact center
+    const tl = c - (topWidth / 2);
+    const tr = c + (topWidth / 2);
+    const bl = c - (bottomWidth / 2);
+    const br = c + (bottomWidth / 2);
+    
+    return `${tl},${y1} ${tr},${y1} ${br},${y2} ${bl},${y2}`;
   });
 
+  drsPitchCenter = computed(() => {
+    const res = this.reviewResults();
+    if (res && res.stumpLeftX !== undefined && res.stumpRightX !== undefined) {
+      return ((res.stumpLeftX + res.stumpRightX) / 2) * 12.8;
+    }
+    return 640;
+  });
+
+  @ViewChild('previewVideo') previewVideo?: ElementRef<HTMLVideoElement>;
   @ViewChild('replayVideo') replayVideo!: ElementRef<HTMLVideoElement>;
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('mediaVideoElement') mediaVideoElement?: ElementRef<HTMLVideoElement>;
@@ -297,10 +338,12 @@ export class ControllerPage implements OnInit, AfterViewInit, OnDestroy {
   private animationFrameId: number | null = null;
   private compFrameId: number | null = null;
 
-  // Replay Buffers
+  // Replay Buffers — Circular window (keeps last ~20s of 200ms chunks = 100 chunks)
   private replayRecorder: MediaRecorder | null = null;
-  private replayChunks: Blob[] = [];
-  private maxReplayChunks = 300; // Longer buffer for safety
+  replayChunks: Blob[] = [];
+  private maxReplayChunks = 100; // 100 × 200ms = 20s rolling window
+  private chunkTimestamps: number[] = []; // track chunk wall-clock times
+  readonly BUFFER_WINDOW_MS = 20000; // 20s rolling window
 
   isRtmpStreaming = signal<boolean>(false);
 
@@ -411,6 +454,8 @@ export class ControllerPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async ngOnInit() {
+    // Enumerate cameras + capture cards on startup
+    await this.loadVideoDevices();
     const roomId = this.route.snapshot.paramMap.get('id');
     if (!roomId) return;
 
@@ -456,10 +501,73 @@ export class ControllerPage implements OnInit, AfterViewInit, OnDestroy {
     setTimeout(() => this.centerOverlay('SCOREBOARD'), 1000);
     // Start compositing permanently so the user can see their work
     this.startCompositing();
+    this.initLiveTrackingWS();
+  }
+
+  private initLiveTrackingWS() {
+    this.liveWs = new WebSocket('ws://127.0.0.1:8000/ws/live-tracking');
+    
+    this.liveWs.onopen = () => {
+      console.log('[LiveTracking] WebSocket Connected.');
+      this.isLiveTrackingActive.set(true);
+      this.startLiveTrackingLoop();
+    };
+
+    this.liveWs.onmessage = (event) => {
+      try {
+        const res = JSON.parse(event.data);
+        if (res.detected && res.trail) {
+          this.liveTrackingTrail.set(res.trail);
+        } else {
+          this.liveTrackingTrail.set([]);
+        }
+      } catch(e) {}
+    };
+
+    this.liveWs.onclose = () => {
+      console.log('[LiveTracking] WebSocket Disconnected.');
+      this.isLiveTrackingActive.set(false);
+      if (this.liveTrackingInterval) clearInterval(this.liveTrackingInterval);
+      // Auto reconnect
+      setTimeout(() => this.initLiveTrackingWS(), 3000);
+    };
+  }
+
+  private startLiveTrackingLoop() {
+    if (this.liveTrackingInterval) clearInterval(this.liveTrackingInterval);
+    
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = 480; // Downscale heavily for ultra-low latency WS transmission
+    tmpCanvas.height = 270;
+    const ctx = tmpCanvas.getContext('2d', { willReadFrequently: true });
+    
+    // Process at 15 FPS (every ~66ms) 
+    this.liveTrackingInterval = setInterval(() => {
+      if (!this.activeStream() || !this.mainVideo?.nativeElement) return;
+      if (this.isReviewMode() || this.isReplaying()) return; // Disable live tracking if DRS is active
+      
+      // Extract from Preview Monitor if in Studio Mode, otherwise fallback to Program Monitor
+      const vid = (this.isStudioMode() && this.previewVideo?.nativeElement) 
+                    ? this.previewVideo.nativeElement 
+                    : this.mainVideo?.nativeElement;
+                    
+      if (!vid || vid.readyState < 2) return;
+
+      if (ctx) {
+        ctx.drawImage(vid, 0, 0, 480, 270);
+        // Fast compression (60% JPEG) to minimize network payload to Python
+        const b64 = tmpCanvas.toDataURL('image/jpeg', 0.6); 
+        if (this.liveWs && this.liveWs.readyState === WebSocket.OPEN) {
+          this.liveWs.send(JSON.stringify({ image: b64 }));
+        }
+      }
+    }, 66);
   }
 
   ngOnDestroy() {
     if (this.compFrameId) clearInterval(this.compFrameId as any);
+    if (this.liveTrackingInterval) clearInterval(this.liveTrackingInterval);
+    if (this.liveWs) this.liveWs.close();
   }
 
   @HostListener('window:resize')
@@ -705,7 +813,19 @@ export class ControllerPage implements OnInit, AfterViewInit, OnDestroy {
         });
         this.replayRecorder.ondataavailable = (e) => {
           if (e.data && e.data.size > 0) {
+            const now = Date.now();
             this.replayChunks.push(e.data);
+            this.chunkTimestamps.push(now);
+            // Trim old chunks outside the rolling window
+            const cutoff = now - this.BUFFER_WINDOW_MS;
+            let trimIdx = 0;
+            while (trimIdx < this.chunkTimestamps.length && this.chunkTimestamps[trimIdx] < cutoff) {
+              trimIdx++;
+            }
+            if (trimIdx > 0) {
+              this.replayChunks.splice(0, trimIdx);
+              this.chunkTimestamps.splice(0, trimIdx);
+            }
           }
         };
         this.replayRecorder.onstop = () => {
@@ -903,32 +1023,173 @@ export class ControllerPage implements OnInit, AfterViewInit, OnDestroy {
     this.calculateReviewResults();
   }
 
+  // ============================================================
+  //  VIDEO DEVICE SELECTION
+  // ============================================================
+  async loadVideoDevices() {
+    try {
+      // Request permission first so labels are populated
+      const tempStream = await navigator.mediaDevices.getUserMedia({ video: true }).catch(() => null);
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs = devices
+        .filter(d => d.kind === 'videoinput')
+        .map(d => ({ deviceId: d.deviceId, label: d.label || `Camera ${d.deviceId.substring(0, 6)}` }));
+      this.videoDevices.set(videoInputs);
+      if (videoInputs.length > 0 && !this.selectedDeviceId()) {
+        this.selectedDeviceId.set(videoInputs[0].deviceId);
+      }
+      // Stop temp stream
+      if (tempStream) tempStream.getTracks().forEach(t => t.stop());
+    } catch (err) {
+      console.warn('[Camera] enumerateDevices failed:', err);
+    }
+  }
+
+  async connectLocalCamera() {
+    const deviceId = this.selectedDeviceId();
+    if (!deviceId) return;
+    this.isConnectingCamera.set(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true
+      });
+      const peerId = 'local-' + deviceId.substring(0, 8);
+      const newCam: ConnectedCamera = { id: peerId, stream, rotation: 0 };
+      this.cameras.update(prev => {
+        const existing = prev.find(c => c.id === peerId);
+        if (existing) { existing.stream = stream; return [...prev]; }
+        return [...prev, newCam];
+      });
+      this.switchCamera(peerId);
+      this.setupAudioAnalysis(stream);
+      console.log('[Camera] Local camera connected:', deviceId);
+    } catch (err: any) {
+      console.error('[Camera] getUserMedia failed:', err);
+      alert('Camera access failed: ' + err.message);
+    } finally {
+      this.isConnectingCamera.set(false);
+    }
+  }
+
+  // ============================================================
+  //  DRS PLAYBACK CONTROLS
+  // ============================================================
+  setPlaybackSpeed(rate: number) {
+    this.drsPlaybackRate.set(rate);
+    const vid = this.replayVideo?.nativeElement;
+    if (vid) vid.playbackRate = rate;
+  }
+
+  toggleDrsPlayPause() {
+    const vid = this.replayVideo?.nativeElement;
+    if (!vid) return;
+    if (vid.paused) {
+      vid.play();
+      this.drsIsPaused.set(false);
+    } else {
+      vid.pause();
+      this.drsIsPaused.set(true);
+    }
+  }
+
+  stepDrsFrame(frames: number) {
+    const vid = this.replayVideo?.nativeElement;
+    if (!vid) return;
+    vid.pause();
+    this.drsIsPaused.set(true);
+    vid.currentTime = Math.max(0, Math.min(vid.duration || 999, vid.currentTime + frames / 30));
+  }
+
+  onDrsSeek(event: Event) {
+    const vid = this.replayVideo?.nativeElement;
+    if (!vid) return;
+    const val = parseFloat((event.target as HTMLInputElement).value);
+    vid.currentTime = (val / 100) * (vid.duration || 0);
+  }
+
+  startDrsSeekTracking() {
+    const vid = this.replayVideo?.nativeElement;
+    if (!vid) return;
+    vid.addEventListener('timeupdate', () => {
+      const pct = vid.duration ? (vid.currentTime / vid.duration) * 100 : 0;
+      this.drsSeekValue.set(pct);
+    });
+    vid.addEventListener('loadedmetadata', () => {
+      this.drsSeekMax.set(100);
+    });
+  }
+
+  // ============================================================
+  //  LOCK REVIEW FRAME  →  AI Analysis
+  // ============================================================
+  lockReviewFrame() {
+    const vid = this.replayVideo?.nativeElement;
+    if (!vid) return;
+    vid.pause();
+    this.drsIsPaused.set(true);
+
+    // Capture current frame to canvas → data URL
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = 1280;
+    tmpCanvas.height = 720;
+    const ctx = tmpCanvas.getContext('2d')!;
+    ctx.drawImage(vid, 0, 0, 1280, 720);
+    const dataUrl = tmpCanvas.toDataURL('image/jpeg', 0.92);
+    this.lockedFrameDataUrl.set(dataUrl);
+    this.capturedFrame.set(dataUrl);
+    console.log('[DRS] Frame locked at', vid.currentTime.toFixed(3) + 's');
+  }
+
+  toggleDrsGraph() {
+    const visible = !this.isDRSGraphVisible();
+    this.isDRSGraphVisible.set(visible);
+    if (visible && this.replayChunks.length > 0 && !this.reviewResults()) {
+      // Trigger AI analysis if not already done
+      this.analyzeVideoAI();
+    } else if (visible && this.reviewResults()) {
+      // Already have results — just show the cinematic reveal
+      this.executeCinematicDRS(this.reviewResults());
+    }
+  }
+
   triggerGalleryImport() {
     this.fileInput.nativeElement.click();
   }
 
   onFileSelected(event: any) {
     const file = event.target.files[0];
-    if (file) {
-      this.replayChunks = [file]; // Crucial: allow AI analysis for uploaded file
-      const url = URL.createObjectURL(file);
-      this.runStingerTransition(() => {
-        this.isReplaying.set(true);
-        this.isReviewMode.set(true);
-        this.reviewStep.set(0);
-        this.reviewPoints.set([]);
-        this.reviewResults.set(null);
+    if (!file) return;
+    this.loadVideoForDrsReview(file);
+    // Reset the file input so the same file can be re-selected
+    event.target.value = '';
+  }
 
-        if (this.replayVideo) {
-          this.replayVideo.nativeElement.src = url;
-          this.replayVideo.nativeElement.load();
-          // Do NOT play yet, wait for analyzeVideoAI to finish and start the sequence
-        }
+  /** Central entry-point: load a File → full DRS cinematic sequence */
+  loadVideoForDrsReview(file: File) {
+    this.replayChunks = [file];
+    this.chunkTimestamps = [Date.now()];
+    const url = URL.createObjectURL(file);
+    this.runStingerTransition(() => {
+      this.isReplaying.set(true);
+      this.isReviewMode.set(true);
+      this.isDRSGraphVisible.set(false);
+      this.reviewStep.set(0);
+      this.reviewPoints.set([]);
+      this.reviewResults.set(null);
+      this.drsIsPaused.set(false);
+      this.drsPlaybackRate.set(1);
 
-        // AUTO-TRIGGER ANALYSIS
-        this.analyzeVideoAI();
-      });
-    }
+      if (this.replayVideo) {
+        const vid = this.replayVideo.nativeElement;
+        vid.src = url;
+        vid.load();
+        this.startDrsSeekTracking();
+      }
+
+      // AUTO-TRIGGER ANALYSIS
+      this.analyzeVideoAI();
+    });
   }
 
   async analyzeVideoAI() {
@@ -1020,119 +1281,241 @@ export class ControllerPage implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  // ============================================================
+  //  CINEMATIC DRS ENGINE — Broadcast-Grade Full Auto
+  // ============================================================
   private executeCinematicDRS(data: any) {
     this.isReviewMode.set(true);
     this.reviewStep.set(0);
     this.drsBallPos.set(null);
     this.drsPlayCycle.set(1);
     this.freezeTriggered.set(false);
+    this.isDRSGraphVisible.set(false);
     this.reviewState.set('playing_delivery');
+    if (this.rVfcId) {
+      (this.replayVideo?.nativeElement as any)?.cancelVideoFrameCallback?.(this.rVfcId);
+    }
 
-    console.log('[DRS Controller] Initiate synchronized 2-pass sequence');
+    const fps: number = data.fps || data.video_fps || 30;
+    const impactFrame: number = data.impact_frame ?? data.impactFrameIndex ?? null;
+    const impactTimeSec: number | null = impactFrame !== null ? impactFrame / fps : null;
+    const TOLERANCE = 0.015; // Extremely tight tolerance (half a 30fps frame) to ensure perfect visual sync
 
-    if (this.replayVideo) {
-      const vid = this.replayVideo.nativeElement;
-      vid.playbackRate = 1.0;
-      vid.currentTime = 0;
+    console.log('[DRS] Broadcast Auto mode: impactFrame=', impactFrame, 'impactTime=', impactTimeSec, 'fps=', fps);
 
-      const onEndedCycle = () => {
-        const currentCycle = this.drsPlayCycle();
-        if (currentCycle === 1) {
-          console.log('[Replay] Pass 1 (Normal) ended -> Pass 2 (Slow-Mo) starting');
-          this.drsPlayCycle.set(2);
-          this.reviewState.set('pitch_graph_reveal'); // Show graph immediately for Pass 2
-          vid.playbackRate = 0.3;
-          vid.currentTime = (data.release_frame || 0) / 30;
+    if (!this.replayVideo) return;
+    const vid = this.replayVideo.nativeElement as HTMLVideoElement;
+    vid.playbackRate = 1.0;
+    vid.currentTime = 0;
 
-          // Ball position sync for the slow-mo pass
-          const syncLoop = setInterval(() => {
-            const currentFrame = Math.floor(vid.currentTime * 30);
-            const ballPath = this.aiBallPath();
-            const pt = ballPath.find((p: any) => p.frame === currentFrame);
-            if (pt) {
-              this.drsBallPos.set({ x: pt.x, y: pt.y });
-            }
-            if (this.freezeTriggered()) clearInterval(syncLoop);
-          }, 16);
+    // ── PASS 1: Normal speed ──────────────────────
+    const onPass1Ended = () => {
+      vid.removeEventListener('ended', onPass1Ended);
+      console.log('[DRS] Pass 1 ended → Pass 2 (ultra slow-mo) starting');
+      this.drsPlayCycle.set(2);
+      
+      // FIX: Ensure state remains `playing_delivery` so the Pitch Graph and UI remain HIDDEN 
+      // while the AI tracks the ball in slow motion.
+      this.reviewState.set('playing_delivery');
+      
+      // "aur slow" — Make the video 0.1x speed so the user gets a highly detailed slow-mo track
+      vid.playbackRate = 0.1; 
+      vid.currentTime = Math.max(0, ((data.release_frame || 0) / fps) - 0.2);
 
-          // Freeze at 0.8s mark for Pass 2
-          const onTimeUpdate = () => {
-            if (this.drsPlayCycle() === 2 && vid.currentTime >= 0.8 && !this.freezeTriggered()) {
-              vid.pause();
-              vid.currentTime = 0.8;
-              this.freezeTriggered.set(true);
-              vid.removeEventListener('timeupdate', onTimeUpdate);
-              vid.removeEventListener('ended', onEndedCycle);
-              clearInterval(syncLoop);
-              console.log('[Replay] Freeze triggered @ 0.8s');
-              this.runImpactBreak(data);
-            }
-          };
-          vid.addEventListener('timeupdate', onTimeUpdate);
-          vid.play();
+      // Ball dot sync loop during playback
+      const syncLoop = setInterval(() => {
+        if (this.freezeTriggered()) { clearInterval(syncLoop); return; }
+        const currentFrame = Math.floor(vid.currentTime * fps);
+        
+        // Use mathematical smoothed path for FLAWLESS visual tracking, fallback to raw AI path if outside bounce bounds
+        const smoothPt = this.aiSmoothedPath().find((p: any) => p.frame === currentFrame);
+        if (smoothPt) {
+          this.drsBallPos.set({ x: smoothPt.x, y: smoothPt.y });
+        } else {
+          const rawPt = this.aiBallPath().find((p: any) => p.frame === currentFrame);
+          if (rawPt && rawPt.detected) this.drsBallPos.set({ x: rawPt.x, y: rawPt.y });
+        }
+        
+        this.isDRSAnimating.set(true);
+      }, 16);
+
+      // ── Precise Frame Locking via requestVideoFrameCallback ────────────────
+      const checkFrame = (now: DOMHighResTimeStamp, metadata: any) => {
+        if (this.freezeTriggered()) return;
+        
+        // CRITICAL FIX: NEVER use `metadata.mediaTime` on Chromium/Ionic! 
+        // It desyncs randomly causing instantaneous false triggers. Rely STRICTLY on internal currentTime!
+        const ct = vid.currentTime;
+        
+        let shouldFreeze = false;
+
+        // 1. Precise time check via AI frame index
+        if (impactTimeSec !== null) {
+          shouldFreeze = ct >= impactTimeSec - 0.015; // Lock strictly at or 0.5 frames prior to exact impact
+        } 
+        // 2. Fallback check
+        else {
+          const path = this.aiBallPath();
+          const detected = path.filter((p: any) => p.detected);
+          if (detected.length > 2) {
+            const midFrame = detected[Math.floor(detected.length / 2)].frame;
+            shouldFreeze = currentFrameFor(vid, fps) >= midFrame;
+          }
+        }
+
+        // Bounding box collision hybrid check (if you add pad & ball rects to AI metadata later)
+        // if (this.boxesIntersect(metadata.ballRect, metadata.padRect)) shouldFreeze = true;
+
+        if (shouldFreeze) {
+          this.freezeTriggered.set(true);
+          clearInterval(syncLoop);
+          
+          // CRITICAL FIX: Removed `vid.currentTime = impactTimeSec;`
+          // HTML5 videos often "snap" to distant keyframes (I-Frames) when currentTime is assigned while playing!
+          // Since we strictly monitor the frame loop, just pausing exactly where it is ensures perfect sync!
+          vid.pause();
+          
+          console.log(`[DRS] EXACT FRAME FREEZE: ${vid.currentTime.toFixed(4)}s (impact)`);
+          this.autoCaptureLockFrame(vid);
+          
+          // Small delay then trigger the 3D switch
+          setTimeout(() => this.runImpactBreak(data), 400);
+          return;
+        }
+        
+        // Loop frame check
+        if ((vid as any).requestVideoFrameCallback && !vid.paused) {
+          this.rVfcId = (vid as any).requestVideoFrameCallback(checkFrame);
         }
       };
 
-      vid.addEventListener('ended', onEndedCycle);
+      // Start precise frame loop, or fallback to timeupdate if unsupported
+      if ((vid as any).requestVideoFrameCallback) {
+        this.rVfcId = (vid as any).requestVideoFrameCallback(checkFrame);
+      } else {
+        const onTimeUpdateFallback = () => {
+          if (this.freezeTriggered()) return;
+          if (impactTimeSec !== null && vid.currentTime >= impactTimeSec - TOLERANCE) {
+            this.freezeTriggered.set(true);
+            vid.removeEventListener('timeupdate', onTimeUpdateFallback);
+            clearInterval(syncLoop);
+            vid.currentTime = impactTimeSec;
+            vid.pause();
+            this.autoCaptureLockFrame(vid);
+            setTimeout(() => this.runImpactBreak(data), 400);
+          }
+        };
+        vid.addEventListener('timeupdate', onTimeUpdateFallback);
+      }
       vid.play();
-    }
+    };
 
+    vid.addEventListener('ended', onPass1Ended);
+    vid.play();
     this.capturedFrame.set(null);
   }
 
+  /** Auto-capture current video frame → base64 JPEG for overlay */
+  private autoCaptureLockFrame(vid: HTMLVideoElement) {
+    try {
+      const tmpCanvas = document.createElement('canvas');
+      tmpCanvas.width = 1280;
+      tmpCanvas.height = 720;
+      const ctx = tmpCanvas.getContext('2d')!;
+      ctx.drawImage(vid, 0, 0, 1280, 720);
+      const dataUrl = tmpCanvas.toDataURL('image/jpeg', 0.88);
+      this.lockedFrameDataUrl.set(dataUrl);
+      this.capturedFrame.set(dataUrl);
+      console.log('[DRS] Frame auto-captured at impact');
+    } catch (e) {
+      console.warn('[DRS] Frame capture failed:', e);
+    }
+  }
+
   private runImpactBreak(data: any) {
-    const projPath = this.aiProjectedPath();
-    console.log('[Replay] pitch graph revealed');
+    // Auto-reveal the pitch graph immediately
+    this.isDRSGraphVisible.set(true);
     this.reviewState.set('pitch_graph_reveal');
     this.reviewStep.set(2);
+    console.log('[DRS] Auto: pitch graph visible, impact break started');
 
+    // Build smooth bezier paths for animation
+    const smoothPath = this.aiSmoothedPath();
+    const projPath   = this.aiProjectedPath();
+
+    // Step 1 — show bounce marker
     if (this.capturedImpactPhoto()) {
       this.capturedFrame.set(this.capturedImpactPhoto());
     }
 
+    // Wait 5 seconds to give commentators time to discuss the static impact frame
     setTimeout(() => {
       this.capturedFrame.set(null);
-      this.reviewStep.set(1);
+
+      // Step 2 — Animate incoming ball trajectory (smoothed path)
       this.reviewState.set('ball_projection_animation');
-      this.animateProjectedPath(projPath);
-    }, 800);
+      this.isDRSAnimating.set(true);
+      this.animateBallAlongPath(smoothPath, 25, () => {
+
+        // Step 3 — brief pause at impact then animate projected path
+        setTimeout(() => {
+          this.animateBallAlongPath(projPath, 35, () => {
+            // Step 4 — reveal stump hit/miss then show decision
+            this.finishDecisionCardsSequence();
+          });
+        }, 300);
+      });
+    }, 5000); // 5 second delay requested by user!
   }
 
-  private animateProjectedPath(projPath: any[]) {
-    if (projPath.length === 0) {
-      this.finishDecisionCardsSequence();
-      return;
-    }
-
-    let j = 0;
-    const projInterval = setInterval(() => {
-      if (j >= projPath.length) {
-        clearInterval(projInterval);
-        this.finishDecisionCardsSequence();
+  /** Generic point-by-point ball animation along any path array */
+  private animateBallAlongPath(path: any[], intervalMs: number, onDone: () => void) {
+    if (!path || path.length === 0) { onDone(); return; }
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i >= path.length) {
+        clearInterval(interval);
+        onDone();
         return;
       }
-      this.drsBallPos.set({ x: projPath[j].x, y: projPath[j].y });
-      j++;
-    }, 35); // Projection momentum
+      this.drsBallPos.set({ x: path[i].x, y: path[i].y });
+      i++;
+    }, intervalMs);
   }
 
   private finishDecisionCardsSequence() {
     this.isDRSAnimating.set(false);
+    this.drsBallPos.set(null); // hide animated ball
     this.reviewState.set('decision_reveal');
+    this.isDRSGraphVisible.set(true); // ensure graph stays visible
     console.log('[DRS] state = decision_reveal');
 
-    // Sequentially reveal the Decision Stack: Pitching -> Impact -> Wickets -> Final
+    // Sequentially reveal: Pitching → Impact → Wickets → Final
     setTimeout(() => {
-      this.reviewStep.set(1); // Pitching Card
-
+      this.reviewStep.set(1); // Pitching
       setTimeout(() => {
-        this.reviewStep.set(2); // Impact Card
-
+        this.reviewStep.set(2); // Impact
         setTimeout(() => {
-          this.reviewStep.set(3); // Wickets Card + Final Decision Badge
+          this.reviewStep.set(3); // Wickets + Final banner
         }, 800);
       }, 800);
-    }, 400); // Wait a beat after ball hitting wickets
+    }, 400);
+  }
+
+  // ── Bezier SVG path helper (smooth catmull-rom-like bezier) ──────────────
+  private toSvgBezierPath(pts: { x: number; y: number }[]): string {
+    if (pts.length < 2) return '';
+    const sx = (p: { x: number }) => p.x * 12.8;
+    const sy = (p: { y: number }) => p.y * 7.2;
+    let d = `M ${sx(pts[0])} ${sy(pts[0])}`;
+    for (let i = 1; i < pts.length; i++) {
+      const cp1x = sx(pts[i - 1]) + (sx(pts[i]) - sx(pts[Math.max(i - 2, 0)])) / 6;
+      const cp1y = sy(pts[i - 1]) + (sy(pts[i]) - sy(pts[Math.max(i - 2, 0)])) / 6;
+      const cp2x = sx(pts[i]) - (sx(pts[Math.min(i + 1, pts.length - 1)]) - sx(pts[i - 1])) / 6;
+      const cp2y = sy(pts[i]) - (sy(pts[Math.min(i + 1, pts.length - 1)]) - sy(pts[i - 1])) / 6;
+      d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${sx(pts[i])} ${sy(pts[i])}`;
+    }
+    return d;
   }
 
   yCoordinateShadowOffset(y: number): number {
@@ -1181,6 +1564,15 @@ export class ControllerPage implements OnInit, AfterViewInit, OnDestroy {
     switch (event.key.toLowerCase()) {
       case '1':
         this.triggerReplay(this.replayDuration());
+        break;
+      case 'r':
+        event.preventDefault();
+        console.log('[Keyboard] R pressed - Triggering Pitch Graph / Replay');
+        if (this.isReviewMode() && this.reviewResults()) {
+          this.toggleDrsGraph();
+        } else {
+          this.triggerReplay(this.replayDuration());
+        }
         break;
       case 'c':
       case 'enter':
@@ -1651,8 +2043,16 @@ export class ControllerPage implements OnInit, AfterViewInit, OnDestroy {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const sourceVideo = this.isReplaying() ? this.replayVideo?.nativeElement :
-        (this.activeCameraId() === 'MEDIA' ? this.mediaVideoElement?.nativeElement : this.mainVideo?.nativeElement);
+      // Ensure the Program stream ONLY shows the live or media camera if in Studio Mode.
+      // If we are NOT in Studio Mode, it's a single screen and WILL take the DRS replay.
+      let sourceVideo;
+      if (this.isReplaying() && !this.isStudioMode()) {
+          sourceVideo = this.replayVideo?.nativeElement;
+      } else {
+          sourceVideo = this.activeCameraId() === 'MEDIA' ? 
+                        this.mediaVideoElement?.nativeElement : 
+                        this.mainVideo?.nativeElement;
+      }
 
       // 1. Draw Base Layer (Black first, then camera/video)
       ctx.fillStyle = '#000';
@@ -1701,8 +2101,8 @@ export class ControllerPage implements OnInit, AfterViewInit, OnDestroy {
         ctx.restore();
       });
 
-      // 4. Add Replay Badge
-      if (this.isReplaying()) {
+      // 4. Add Replay Badge (Only if the main stream is actually showing the replay!)
+      if (this.isReplaying() && !this.isStudioMode()) {
         ctx.fillStyle = '#E11D48';
         ctx.fillRect(40, 40, 180, 50);
         ctx.fillStyle = '#FFFFFF';

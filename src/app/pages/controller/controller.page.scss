@@ -243,15 +243,307 @@
 }
 
 @keyframes flashFade {
-  0% {
-    opacity: 0;
-  }
+  0%   { opacity: 0; }
+  50%  { opacity: 1; }
+  100% { opacity: 0; }
+}
 
-  50% {
-    opacity: 1;
-  }
+/* =====================================================
+   DRS TRANSPORT BAR
+   ===================================================== */
+.drs-transport-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(180deg, rgba(10, 11, 15, 0.7) 0%, rgba(17, 19, 24, 0.9) 100%);
+  backdrop-filter: blur(4px);
+  border-top: 1px solid rgba(191, 145, 59, 0.4);
+  padding: 6px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 50;
+}
 
-  100% {
-    opacity: 0;
+.drs-seek-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.drs-time-label {
+  font-size: 9px;
+  font-weight: 900;
+  color: #bf913b;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.drs-seek-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 4px;
+  background: #2d2e34;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #bf913b;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(191, 145, 59, 0.5);
   }
 }
+
+.drs-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.drs-section-label {
+  font-size: 9px;
+  font-weight: 900;
+  color: #555;
+  letter-spacing: 0.05em;
+  padding: 0 2px;
+}
+
+.drs-divider {
+  width: 1px;
+  height: 18px;
+  background: #2d2e34;
+  margin: 0 2px;
+}
+
+.drs-btn {
+  background: #2d2e34;
+  border: 1px solid #111;
+  color: #e0e0e0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.1s;
+  white-space: nowrap;
+
+  &:hover { background: #404144; }
+  &:active { transform: scale(0.96); }
+}
+
+.drs-btn-primary {
+  background: #1a4bff;
+  border-color: #1a4bff;
+  color: #fff;
+  min-width: 32px;
+  &:hover { background: #2b5fff; }
+}
+
+.drs-btn-active {
+  background: #bf913b !important;
+  border-color: #d4af37 !important;
+  color: #000 !important;
+}
+
+.drs-btn-lock {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: #fff;
+  &:hover { background: #8b5cf6; }
+}
+
+.drs-btn-graph {
+  background: #065f46;
+  border-color: #065f46;
+  color: #6ee7b7;
+  font-size: 10px;
+  font-weight: 900;
+  &:hover { background: #047857; }
+}
+
+.drs-btn-graph-active {
+  background: #064e3b !important;
+  border-color: #10b981 !important;
+  color: #10b981 !important;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+}
+
+.drs-ai-badge {
+  font-size: 9px;
+  font-weight: 900;
+  background: #1a4bff;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+}
+
+/* =====================================================
+   DRS PITCH GRAPH OVERLAY
+   ===================================================== */
+.drs-overlay {
+  pointer-events: none;
+  z-index: 20;
+}
+
+@keyframes bouncePulse {
+  0%, 100% { r: 7; opacity: 1; }
+  50%       { r: 10; opacity: 0.6; }
+}
+
+@keyframes impactRipple {
+  0%   { r: 8;  opacity: 1; }
+  100% { r: 20; opacity: 0; }
+}
+
+.drs-bounce-pulse {
+  animation: bouncePulse 1.2s ease-in-out infinite;
+}
+
+.drs-impact-pulse {
+  animation: impactRipple 1s ease-out infinite;
+}
+
+/* =====================================================
+   LBW DECISION BADGES
+   ===================================================== */
+.drs-decision-panel {
+  position: absolute;
+  top: 50%;
+  left: 24px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.cwc-badge {
+  display: flex;
+  align-items: stretch;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transform: translateX(-30px);
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  min-width: 180px;
+
+  &.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.cwc-label {
+  background: white;
+  color: #1a1e35;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 90px;
+}
+
+.cwc-value {
+  color: white;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  /* Default background, overridden by specific classes */
+  background: #2a2d4f; 
+
+  &.in-line    { background: #dc2626; } /* Red for hitting/inline logic */
+  &.outside    { background: #2563eb; } /* Blue for outside/missing */
+  &.hitting    { background: #dc2626; }
+  &.missing    { background: #2563eb; }
+  &.out        { background: #dc2626; }
+  &.not-out    { background: #059669; } /* Green for purely safe */
+}
+
+.cwc-final-badge {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5);
+  animation: bannerPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  
+  .cwc-label {
+    background: white;
+    color: #dc2626; /* Red text for ORIGINAL DECISION */
+    font-size: 10px;
+    justify-content: center;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  
+  .cwc-value {
+    font-size: 16px;
+    padding: 8px 16px;
+  }
+}
+
+@keyframes bannerPop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* =====================================================
+   DRS ANALYZING OVERLAY
+   ===================================================== */
+.drs-analyzing-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+}
+
+.drs-spinner-ring {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(191, 145, 59, 0.2);
+  border-top-color: #bf913b;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.drs-analyzing-label {
+  font-size: 11px;
+  font-weight: 900;
+  color: #bf913b;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
